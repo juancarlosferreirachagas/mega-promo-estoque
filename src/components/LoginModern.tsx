@@ -217,6 +217,49 @@ export default function LoginModern({ onLogin }: LoginProps) {
                   )}
                 </Button>
               </motion.div>
+
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.6 }}
+                className="relative"
+              >
+                <div className="relative flex items-center my-4">
+                  <div className="flex-grow border-t border-gray-300"></div>
+                  <span className="px-3 text-sm text-gray-500 bg-white">ou</span>
+                  <div className="flex-grow border-t border-gray-300"></div>
+                </div>
+                
+                <Button
+                  type="button"
+                  onClick={async () => {
+                    setError("");
+                    setSuccess(false);
+                    setIsLoading(true);
+                    const success = await onLogin('', '');
+                    setIsLoading(false);
+                    if (success) {
+                      setSuccess(true);
+                    }
+                  }}
+                  className="w-full h-12 text-base font-semibold gradient-orange hover:opacity-90 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{
+                        duration: 1,
+                        repeat: Infinity,
+                        ease: "linear",
+                      }}
+                      className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                    />
+                  ) : (
+                    "Visualizar Estoque Rápido"
+                  )}
+                </Button>
+              </motion.div>
             </form>
           </CardContent>
         </Card>

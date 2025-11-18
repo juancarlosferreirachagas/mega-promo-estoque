@@ -201,6 +201,7 @@ export default function AppWithSupabase() {
     if (username === '' && password === '') {
       setCurrentUser(null);
       setIsAuthenticated(true);
+      setActiveTab('estoque');
       localStorage.removeItem('currentUser');
       return true;
     }
@@ -218,6 +219,7 @@ export default function AppWithSupabase() {
 
         setCurrentUser(formattedUser);
         setIsAuthenticated(true);
+        setActiveTab('estoque');
         localStorage.setItem('currentUser', JSON.stringify(formattedUser));
         return true;
       }
@@ -553,8 +555,19 @@ export default function AppWithSupabase() {
         
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 bg-white shadow-md mb-8">
+        <Tabs 
+          value={activeTab} 
+          onValueChange={(value) => {
+            // No modo visualização, apenas permite a aba de estoque
+            if (!currentUser && value !== 'estoque') {
+              setActiveTab('estoque');
+            } else {
+              setActiveTab(value);
+            }
+          }} 
+          className="w-full"
+        >
+          <TabsList className={`grid w-full ${currentUser ? 'grid-cols-2 md:grid-cols-5' : 'grid-cols-1'} bg-white shadow-md mb-8`}>
             <TabsTrigger 
               value="estoque" 
               className="data-[state=active]:bg-orange-500 data-[state=active]:text-white"
@@ -562,13 +575,16 @@ export default function AppWithSupabase() {
               <Package className="w-4 h-4 mr-2" />
               Estoque
             </TabsTrigger>
-            <TabsTrigger 
-              value="historico" 
-              className="data-[state=active]:bg-orange-500 data-[state=active]:text-white"
-            >
-              <History className="w-4 h-4 mr-2" />
-              Histórico
-            </TabsTrigger>
+            
+            {currentUser && (
+              <TabsTrigger 
+                value="historico" 
+                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white"
+              >
+                <History className="w-4 h-4 mr-2" />
+                Histórico
+              </TabsTrigger>
+            )}
             
             {hasPermission('cadastrar_itens') && (
               <TabsTrigger 
@@ -610,17 +626,19 @@ export default function AppWithSupabase() {
           </TabsContent>
 
           {/* Histórico */}
-          <TabsContent value="historico">
-            <Historico
-              movements={movements}
-              inventory={inventory}
-              canEdit={hasPermission('editar_movimentacoes')}
-              canDelete={hasPermission('excluir_movimentacoes')}
-              onEdit={openEditModal}
-              onDelete={handleDeleteMovement}
-              currentUser={currentUser}
-            />
-          </TabsContent>
+          {currentUser && (
+            <TabsContent value="historico">
+              <Historico
+                movements={movements}
+                inventory={inventory}
+                canEdit={hasPermission('editar_movimentacoes')}
+                canDelete={hasPermission('excluir_movimentacoes')}
+                onEdit={openEditModal}
+                onDelete={handleDeleteMovement}
+                currentUser={currentUser}
+              />
+            </TabsContent>
+          )}
 
           {/* Cadastrar Item */}
           {hasPermission('cadastrar_itens') && (
