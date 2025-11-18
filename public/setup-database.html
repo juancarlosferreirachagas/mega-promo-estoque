@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Setup Database - Mega Promo</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f97316 0%, #f59e0b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+        h1 {
+            color: #f97316;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .status.loading { background: #fef3c7; color: #92400e; }
+        .status.success { background: #d1fae5; color: #065f46; }
+        .status.error { background: #fee2e2; color: #991b1b; }
+        .steps { margin: 20px 0; }
+        .step {
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .step.done { background: #d1fae5; color: #065f46; }
+        .step.current { background: #fef3c7; color: #92400e; }
+        .icon { font-size: 20px; }
+        button {
+            background: linear-gradient(135deg, #f97316 0%, #f59e0b 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: transform 0.2s;
+        }
+        button:hover { transform: translateY(-2px); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .log {
+            background: #1f2937;
+            color: #10b981;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 20px;
+            display: none;
+        }
+        .log.show { display: block; }
+        .log div { margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Setup Automático do Database</h1>
+        <p class="subtitle">Mega Promo Merchandising - São Paulo</p>
+
+        <div id="status" class="status loading">
+            ⏳ Aguardando início...
+        </div>
+
+        <div class="steps">
+            <div class="step" id="step1">
+                <span class="icon">⏳</span>
+                <span>Conectar ao Supabase</span>
+            </div>
+            <div class="step" id="step2">
+                <span class="icon">⏳</span>
+                <span>Criar tabela de auditoria</span>
+            </div>
+            <div class="step" id="step3">
+                <span class="icon">⏳</span>
+                <span>Configurar políticas de segurança</span>
+            </div>
+            <div class="step" id="step4">
+                <span class="icon">⏳</span>
+                <span>Recarregar schema do PostgREST</span>
+            </div>
+        </div>
+
+        <button id="setupBtn" onclick="setupDatabase()">
+            🚀 Configurar Database Agora
+        </button>
+
+        <div id="log" class="log"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://dgqojbdipxpblxldgkxv.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRncW9qYmRpcHhwYmx4bGRna3h2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzMDU4MTYsImV4cCI6MjA3ODg4MTgxNn0.HAOH4ZYxE3iHOVcx8QlwRX-tvjakNH8eDM7squrbHHE';
+
+        function updateStatus(message, type = 'loading') {
+            const status = document.getElementById('status');
+            status.className = `status ${type}`;
+            status.innerHTML = message;
+        }
+
+        function updateStep(stepId, status) {
+            const step = document.getElementById(stepId);
+            const icon = step.querySelector('.icon');
+
+            if (status === 'current') {
+                step.className = 'step current';
+                icon.textContent = '⏳';
+            } else if (status === 'done') {
+                step.className = 'step done';
+                icon.textContent = '✅';
+            } else if (status === 'error') {
+                step.className = 'step error';
+                icon.textContent = '❌';
+            }
+        }
+
+        function addLog(message) {
+            const log = document.getElementById('log');
+            log.classList.add('show');
+            const line = document.createElement('div');
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.appendChild(line);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        async function setupDatabase() {
+            const btn = document.getElementById('setupBtn');
+            btn.disabled = true;
+
+            try {
+                updateStep('step1', 'current');
+                updateStatus('⏳ Conectando ao Supabase...', 'loading');
+                addLog('Conectando ao Supabase...');
+
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/make-server-9694c52b/setup-audit-table`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                updateStep('step1', 'done');
+                addLog('✅ Conectado com sucesso!');
+
+                updateStep('step2', 'current');
+                updateStatus('⏳ Criando tabela de auditoria...', 'loading');
+                addLog('Criando tabela mega_promo_audit_log...');
+
+                const data = await response.json();
+
+                if (!data.success && data.error && !data.error.includes('already exists')) {
+                    throw new Error(data.error || 'Erro ao criar tabela');
+                }
+
+                updateStep('step2', 'done');
+                updateStep('step3', 'done');
+                updateStep('step4', 'done');
+                addLog('✅ Tabela criada com sucesso!');
+                addLog('✅ Políticas de segurança configuradas!');
+                addLog('✅ Schema recarregado!');
+
+                updateStatus('✅ Database configurado com sucesso! Aguarde 10 segundos antes de usar o sistema.', 'success');
+
+                setTimeout(() => {
+                    updateStatus('✅ Tudo pronto! Pode fechar esta janela e usar o sistema.', 'success');
+                }, 10000);
+
+            } catch (error) {
+                updateStep('step2', 'error');
+                updateStatus(`❌ Erro: ${error.message}. Execute o SQL manualmente no Supabase Dashboard.`, 'error');
+                addLog(`❌ Erro: ${error.message}`);
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
+

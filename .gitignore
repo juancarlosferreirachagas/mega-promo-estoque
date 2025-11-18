@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.vercel/
+build/
+npm-debug.log*
+package-lock-backup.json
+*.local
+
