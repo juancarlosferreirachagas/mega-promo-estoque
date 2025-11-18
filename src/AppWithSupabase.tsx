@@ -557,17 +557,10 @@ export default function AppWithSupabase() {
         {/* Tabs */}
         <Tabs 
           value={activeTab} 
-          onValueChange={(value) => {
-            // No modo visualização, apenas permite a aba de estoque
-            if (!currentUser && value !== 'estoque') {
-              setActiveTab('estoque');
-            } else {
-              setActiveTab(value);
-            }
-          }} 
+          onValueChange={setActiveTab}
           className="w-full"
         >
-          <TabsList className={`grid w-full ${currentUser ? 'grid-cols-2 md:grid-cols-5' : 'grid-cols-1'} bg-white shadow-md mb-8`}>
+          <TabsList className={`grid w-full ${currentUser ? 'grid-cols-2 md:grid-cols-5' : 'grid-cols-2'} bg-white shadow-md mb-8`}>
             <TabsTrigger 
               value="estoque" 
               className="data-[state=active]:bg-orange-500 data-[state=active]:text-white"
@@ -576,15 +569,13 @@ export default function AppWithSupabase() {
               Estoque
             </TabsTrigger>
             
-            {currentUser && (
-              <TabsTrigger 
-                value="historico" 
-                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white"
-              >
-                <History className="w-4 h-4 mr-2" />
-                Histórico
-              </TabsTrigger>
-            )}
+            <TabsTrigger 
+              value="historico" 
+              className="data-[state=active]:bg-orange-500 data-[state=active]:text-white"
+            >
+              <History className="w-4 h-4 mr-2" />
+              Histórico
+            </TabsTrigger>
             
             {hasPermission('cadastrar_itens') && (
               <TabsTrigger 
@@ -626,19 +617,17 @@ export default function AppWithSupabase() {
           </TabsContent>
 
           {/* Histórico */}
-          {currentUser && (
-            <TabsContent value="historico">
-              <Historico
-                movements={movements}
-                inventory={inventory}
-                canEdit={hasPermission('editar_movimentacoes')}
-                canDelete={hasPermission('excluir_movimentacoes')}
-                onEdit={openEditModal}
-                onDelete={handleDeleteMovement}
-                currentUser={currentUser}
-              />
-            </TabsContent>
-          )}
+          <TabsContent value="historico">
+            <Historico
+              movements={movements}
+              inventory={inventory}
+              canEdit={hasPermission('editar_movimentacoes')}
+              canDelete={hasPermission('excluir_movimentacoes')}
+              onEdit={openEditModal}
+              onDelete={handleDeleteMovement}
+              currentUser={currentUser}
+            />
+          </TabsContent>
 
           {/* Cadastrar Item */}
           {hasPermission('cadastrar_itens') && (
