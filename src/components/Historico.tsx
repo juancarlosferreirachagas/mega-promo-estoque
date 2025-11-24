@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -234,7 +234,7 @@ export default function Historico({
     return item || { name: "Produto removido", size: "N/A" };
   };
 
-  const handleExportExcel = async () => {
+  const handleExportExcel = useCallback(async () => {
     if (filteredMovements.length === 0) {
       alert("Não há movimentações para exportar.");
       return;
@@ -399,10 +399,10 @@ export default function Historico({
     alert(
       `✅ Histórico exportado com sucesso!\n\n📊 ${filteredMovements.length} registro(s) exportado(s)\n📁 Arquivo: ${fileName}`,
     );
-  };
+  }, [filteredMovements]);
 
   // Aplicar filtros
-  const filteredMovements = movements.filter((movement) => {
+  const filteredMovements = useMemo(() => movements.filter((movement) => {
     // Filtro por Empresa/Pessoa
     const matchesPerson = movement.personName
       .toLowerCase()
@@ -414,7 +414,7 @@ export default function Historico({
       .includes(searchResponsible.toLowerCase());
 
     return matchesPerson && matchesResponsible;
-  });
+  }), [movements, searchPerson, searchResponsible]);
 
   return (
     <Card className="border-orange-200 shadow-lg">

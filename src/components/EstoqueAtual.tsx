@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { InventoryItem } from '../AppWithSupabase';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -11,6 +11,7 @@ import {
   FileText, 
   Trash2,
   Edit,
+  X,
   Shirt,
   ShoppingBag,
   Footprints,
@@ -70,12 +71,20 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
     return Array.from(productsInInventory).sort();
   }, [inventory]);
 
+  // Tamanhos dinâmicos baseados no produto selecionado
   const availableSizes = useMemo(() => {
-    // Apenas tamanhos que estão no estoque
-    const sizesInInventory = new Set(inventory.map(item => item.size.toUpperCase()));
+    // Se um produto estiver selecionado, mostrar apenas tamanhos desse produto
+    if (productFilter !== 'all') {
+      const sizesForProduct = inventory
+        .filter(item => item.name.toUpperCase() === productFilter)
+        .map(item => item.size.toUpperCase());
+      return Array.from(new Set(sizesForProduct)).sort();
+    }
     
+    // Se nenhum produto selecionado, mostrar todos os tamanhos
+    const sizesInInventory = new Set(inventory.map(item => item.size.toUpperCase()));
     return Array.from(sizesInInventory).sort();
-  }, [inventory]);
+  }, [inventory, productFilter]);
 
   const getSizeColor = (size: string): { bg: string; text: string; border: string } => {
     // Padrão ÚNICO cinza para todos os tamanhos
@@ -125,7 +134,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
     return Package;
   };
 
-  const handleExportExcel = async () => {
+  const handleExportExcel = useCallback(async () => {
     if (inventory.length === 0) {
       alert('Não há itens no estoque para exportar.');
       return;
@@ -305,7 +314,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
 
     const totalQuantity = inventory.reduce((sum, item) => sum + item.quantity, 0);
     alert(`✅ Estoque exportado com sucesso!\n\n📦 ${inventory.length} produto(s)\n📊 ${totalQuantity} unidade(s) total\n📁 Arquivo: ${fileName}`);
-  };
+  }, [inventory]);
 
   // Aplicar filtros
   const filteredInventory = useMemo(() => {
@@ -350,29 +359,29 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
     });
   }, [filteredInventory, sortBy]);
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = useCallback(async () => {
     if (!deleteDialog.item || !onDelete) return;
     
     await onDelete(deleteDialog.item.id, `${deleteDialog.item.name} (${deleteDialog.item.size})`);
     setDeleteDialog({ isOpen: false, item: null });
-  };
+  }, [deleteDialog.item, onDelete]);
 
-  const handleDeleteClick = (item: InventoryItem) => {
+  const handleDeleteClick = useCallback((item: InventoryItem) => {
     setDeleteDialog({ isOpen: true, item });
-  };
+  }, []);
 
-  const handleEditClick = (item: InventoryItem) => {
+  const handleEditClick = useCallback((item: InventoryItem) => {
     setEditDialog({ isOpen: true, item });
-  };
+  }, []);
 
-  const handleEditSave = async (itemId: string, quantity: number) => {
+  const handleEditSave = useCallback(async (itemId: string, quantity: number) => {
     if (!onEdit) return false;
     const success = await onEdit(itemId, quantity);
     if (success) {
       setEditDialog({ isOpen: false, item: null });
     }
     return success;
-  };
+  }, [onEdit]);
 
   return (
     <>
@@ -393,32 +402,26 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="pt-6">
-          {/* FILTROS MODERNOS E INTELIGENTES */}
+        <CardContent className="pt-6 px-4 sm:px-6">
+          {/* FILTROS COMPACTOS E MODERNOS */}
           <motion.div 
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6 bg-gradient-to-br from-white via-orange-50/30 to-amber-50/30 backdrop-blur-sm rounded-2xl border-2 border-orange-200/50 shadow-xl overflow-hidden"
+            className="mb-4 bg-white rounded-xl border-2 border-orange-200 shadow-md overflow-hidden"
           >
-            {/* Header do Filtro */}
-            <div className="bg-gradient-to-r from-orange-500 via-orange-600 to-amber-600 px-5 py-2.5 shadow-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <Filter className="w-4 h-4 text-white" />
-                  <h3 className="font-bold text-white tracking-wide uppercase text-sm">FILTROS</h3>
-                </div>
-                
-                {/* Badge de Resultados */}
+            {/* Header Compacto */}
+            <div className="bg-gradient-to-r from-orange-500 to-amber-600 px-4 py-2">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
-                  <div className="px-3 py-1.5 bg-white/30 backdrop-blur-sm rounded-lg border border-white/40">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-white/90 font-medium">Mostrando</span>
-                      <span className="font-bold text-white">{sortedInventory.length}</span>
-                      <span className="text-xs text-white/80">/ {inventory.length}</span>
-                    </div>
+                  <Filter className="w-4 h-4 text-white" />
+                  <h3 className="font-bold text-white text-sm">Filtros</h3>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="px-2.5 py-1 bg-white/20 rounded-lg backdrop-blur-sm">
+                    <span className="text-xs text-white font-semibold">
+                      {sortedInventory.length}/{inventory.length}
+                    </span>
                   </div>
-                  
-                  {/* Botão Limpar Filtros */}
                   {(searchTerm || statusFilter !== 'all' || productFilter !== 'all' || sizeFilter !== 'all' || sortBy !== 'name-asc') && (
                     <Button
                       onClick={() => {
@@ -428,7 +431,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                         setSizeFilter('all');
                         setSortBy('name-asc');
                       }}
-                      className="bg-white/30 hover:bg-white/40 text-white border border-white/40 backdrop-blur-sm font-bold text-xs h-auto py-1.5 px-3 rounded-lg transition-all hover:shadow-lg"
+                      className="bg-white/20 hover:bg-white/30 text-white border border-white/30 h-auto py-1 px-2.5 text-xs font-semibold rounded-lg transition-all"
                     >
                       Limpar
                     </Button>
@@ -437,58 +440,52 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
               </div>
             </div>
 
-            {/* Corpo dos Filtros */}
-            <div className="p-4 space-y-3">
-              {/* Linha 1: Busca Inteligente */}
+            {/* Corpo Compacto */}
+            <div className="p-3 sm:p-4 space-y-3">
+              {/* Busca */}
               <div>
-                <Label htmlFor="search" className="text-gray-700 font-bold mb-1.5 flex items-center gap-2">
-                  <Search className="w-4 h-4 text-orange-600" />
-                  Busca Inteligente
-                </Label>
-                <div className="relative group">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-orange-600 transition-colors" />
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <Input
                     id="search"
                     type="text"
-                    placeholder="Digite nome, tamanho ou código do produto..."
+                    placeholder="Buscar produto ou tamanho..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-12 pr-4 h-10 bg-white border-2 border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 rounded-xl font-medium text-gray-900 placeholder:text-gray-400 shadow-sm hover:shadow-md transition-all"
+                    className="pl-9 pr-8 h-9 bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-200 rounded-lg text-sm"
                   />
                   {searchTerm && (
                     <button
                       onClick={() => setSearchTerm('')}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                     >
-                      <span className="text-xl font-bold">×</span>
+                      <X className="w-4 h-4" />
                     </button>
                   )}
                 </div>
               </div>
 
-              {/* Linha 2: Grid de Filtros */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Grid de Filtros Compacto */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                 {/* Filtro de Produto */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="product-filter" className="text-gray-700 font-bold flex items-center gap-2">
-                    <div className="p-1 bg-orange-100 rounded-md">
-                      <Package className="w-3.5 h-3.5 text-orange-600" />
-                    </div>
+                <div>
+                  <Label htmlFor="product-filter" className="text-xs text-gray-600 font-semibold mb-1 block">
                     Produto
                   </Label>
-                  <Select value={productFilter} onValueChange={setProductFilter}>
-                    <SelectTrigger id="product-filter" className="h-10 bg-white border-2 border-gray-200 hover:border-orange-300 focus:border-orange-500 rounded-xl font-medium shadow-sm hover:shadow-md transition-all">
-                      <SelectValue placeholder="Todos os produtos" />
+                  <Select 
+                    value={productFilter} 
+                    onValueChange={(value) => {
+                      setProductFilter(value);
+                      setSizeFilter('all');
+                    }}
+                  >
+                    <SelectTrigger id="product-filter" className="h-9 bg-gray-50 border border-gray-200 hover:border-orange-300 focus:border-orange-500 rounded-lg text-sm">
+                      <SelectValue placeholder="Todos" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl max-h-[250px] select-scrollbar">
-                      <SelectItem value="all" className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <Package className="w-4 h-4 text-blue-600" />
-                          <span>Todos os Produtos</span>
-                        </div>
-                      </SelectItem>
+                    <SelectContent className="max-h-[250px] select-scrollbar">
+                      <SelectItem value="all">Todos</SelectItem>
                       {availableProducts.map((product) => (
-                        <SelectItem key={product} value={product} className="font-medium">
+                        <SelectItem key={product} value={product}>
                           {product}
                         </SelectItem>
                       ))}
@@ -497,28 +494,18 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                 </div>
 
                 {/* Filtro de Tamanho */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="size-filter" className="text-gray-700 font-bold flex items-center gap-2">
-                    <div className="p-1 bg-purple-100 rounded-md">
-                      <svg className="w-3.5 h-3.5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                      </svg>
-                    </div>
+                <div>
+                  <Label htmlFor="size-filter" className="text-xs text-gray-600 font-semibold mb-1 block">
                     Tamanho
                   </Label>
                   <Select value={sizeFilter} onValueChange={setSizeFilter}>
-                    <SelectTrigger id="size-filter" className="h-10 bg-white border-2 border-gray-200 hover:border-orange-300 focus:border-orange-500 rounded-xl font-medium shadow-sm hover:shadow-md transition-all">
-                      <SelectValue placeholder="Todos os tamanhos" />
+                    <SelectTrigger id="size-filter" className="h-9 bg-gray-50 border border-gray-200 hover:border-orange-300 focus:border-orange-500 rounded-lg text-sm">
+                      <SelectValue placeholder="Todos" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl max-h-[250px] select-scrollbar">
-                      <SelectItem value="all" className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <Package className="w-4 h-4 text-blue-600" />
-                          <span>Todos os Tamanhos</span>
-                        </div>
-                      </SelectItem>
+                    <SelectContent className="max-h-[250px] select-scrollbar">
+                      <SelectItem value="all">Todos</SelectItem>
                       {availableSizes.map((size) => (
-                        <SelectItem key={size} value={size} className="font-medium">
+                        <SelectItem key={size} value={size}>
                           {size}
                         </SelectItem>
                       ))}
@@ -527,46 +514,26 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                 </div>
 
                 {/* Filtro de Status */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="status-filter" className="text-gray-700 font-bold flex items-center gap-2">
-                    <div className={`p-1 rounded-md ${
-                      statusFilter === 'low' ? 'bg-red-100' :
-                      statusFilter === 'ok' ? 'bg-green-100' :
-                      'bg-blue-100'
-                    }`}>
-                      {statusFilter === 'low' ? (
-                        <AlertCircle className="w-3.5 h-3.5 text-red-600" />
-                      ) : statusFilter === 'ok' ? (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-                      ) : (
-                        <Package className="w-3.5 h-3.5 text-blue-600" />
-                      )}
-                    </div>
+                <div>
+                  <Label htmlFor="status-filter" className="text-xs text-gray-600 font-semibold mb-1 block">
                     Situação
                   </Label>
                   <Select value={statusFilter} onValueChange={(value: 'all' | 'low' | 'ok') => setStatusFilter(value)}>
-                    <SelectTrigger id="status-filter" className="h-10 bg-white border-2 border-gray-200 hover:border-orange-300 focus:border-orange-500 rounded-xl font-medium shadow-sm hover:shadow-md transition-all">
+                    <SelectTrigger id="status-filter" className="h-9 bg-gray-50 border border-gray-200 hover:border-orange-300 focus:border-orange-500 rounded-lg text-sm">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl max-h-[250px] select-scrollbar">
-                      <SelectItem value="all" className="font-medium">
+                    <SelectContent className="max-h-[250px] select-scrollbar">
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="low">
                         <div className="flex items-center gap-2">
-                          <Package className="w-4 h-4 text-blue-600" />
-                          <span>Todos</span>
+                          <AlertCircle className="w-3.5 h-3.5 text-red-600" />
+                          <span>Baixo</span>
                         </div>
                       </SelectItem>
-                      <SelectItem value="low" className="font-medium">
+                      <SelectItem value="ok">
                         <div className="flex items-center gap-2">
-                          <AlertCircle className="w-4 h-4 text-red-600" />
-                          <span>Estoque Baixo</span>
-                          <span className="text-xs text-gray-500">({"<"} 10)</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="ok" className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-green-600" />
-                          <span>Estoque Normal</span>
-                          <span className="text-xs text-gray-500">(≥ 10)</span>
+                          <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+                          <span>Normal</span>
                         </div>
                       </SelectItem>
                     </SelectContent>
@@ -574,81 +541,64 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                 </div>
 
                 {/* Filtro de Ordenação */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="sort-by" className="text-gray-700 font-bold flex items-center gap-2">
-                    <div className="p-1 bg-indigo-100 rounded-md">
-                      <svg className="w-3.5 h-3.5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                      </svg>
-                    </div>
-                    Ordenação
+                <div>
+                  <Label htmlFor="sort-by" className="text-xs text-gray-600 font-semibold mb-1 block">
+                    Ordenar
                   </Label>
                   <Select value={sortBy} onValueChange={(value: typeof sortBy) => setSortBy(value)}>
-                    <SelectTrigger id="sort-by" className="h-10 bg-white border-2 border-gray-200 hover:border-orange-300 focus:border-orange-500 rounded-xl font-medium shadow-sm hover:shadow-md transition-all">
+                    <SelectTrigger id="sort-by" className="h-9 bg-gray-50 border border-gray-200 hover:border-orange-300 focus:border-orange-500 rounded-lg text-sm">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl max-h-[250px] select-scrollbar">
-                      <SelectItem value="name-asc" className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <span className="text-blue-600 font-bold">A→Z</span>
-                          <span>Nome ↑</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="name-desc" className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <span className="text-blue-600 font-bold">Z→A</span>
-                          <span>Nome ↓</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="quantity-asc" className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <span className="text-red-600 font-bold">↑</span>
-                          <span>Qtd ↑</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="quantity-desc" className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <span className="text-green-600 font-bold">↓</span>
-                          <span>Qtd ↓</span>
-                        </div>
-                      </SelectItem>
+                    <SelectContent className="max-h-[250px] select-scrollbar">
+                      <SelectItem value="name-asc">A→Z</SelectItem>
+                      <SelectItem value="name-desc">Z→A</SelectItem>
+                      <SelectItem value="quantity-asc">Qtd ↑</SelectItem>
+                      <SelectItem value="quantity-desc">Qtd ↓</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              {/* Estatísticas Rápidas - Linha separada */}
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-200">
-                <div className="bg-gradient-to-br from-red-500 to-red-600 p-2 rounded-xl shadow-md border-2 border-red-400">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <AlertCircle className="w-3 h-3 text-white" />
-                    <span className="text-[9px] text-white/80 font-bold uppercase tracking-wide">Estoque Baixo</span>
+              {/* Estatísticas Compactas */}
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100">
+                <div className={`p-2.5 rounded-lg ${
+                  inventory.filter(i => i.quantity < 10).length > 0
+                    ? 'bg-red-50 border border-red-200'
+                    : 'bg-gray-50 border border-gray-200'
+                }`}>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <AlertCircle className={`w-3.5 h-3.5 ${
+                      inventory.filter(i => i.quantity < 10).length > 0 ? 'text-red-600' : 'text-gray-400'
+                    }`} />
+                    <span className="text-xs font-semibold text-gray-700">Baixo</span>
                   </div>
-                  <p className="text-xl font-black text-white leading-none">
+                  <p className={`text-lg font-black ${
+                    inventory.filter(i => i.quantity < 10).length > 0 ? 'text-red-700' : 'text-gray-500'
+                  }`}>
                     {inventory.filter(i => i.quantity < 10).length}
                   </p>
                 </div>
-                <div className="bg-gradient-to-br from-green-500 to-green-600 p-2 rounded-xl shadow-md border-2 border-green-400">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <CheckCircle2 className="w-3 h-3 text-white" />
-                    <span className="text-[9px] text-white/80 font-bold uppercase tracking-wide">Estoque Normal</span>
+                <div className="p-2.5 rounded-lg bg-orange-50 border border-orange-200">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-orange-600" />
+                    <span className="text-xs font-semibold text-gray-700">Normal</span>
                   </div>
-                  <p className="text-xl font-black text-white leading-none">
+                  <p className="text-lg font-black text-orange-700">
                     {inventory.filter(i => i.quantity >= 10).length}
                   </p>
                 </div>
               </div>
 
-              {/* Status Bar - Indicador Visual */}
+              {/* Indicador de Filtro Ativo */}
               {sortedInventory.length !== inventory.length && (
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="flex items-center gap-2 p-2.5 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl border-2 border-blue-400 shadow-md"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-center gap-2 p-2 bg-orange-50 border border-orange-200 rounded-lg"
                 >
-                  <Filter className="w-4 h-4 text-white" />
-                  <span className="text-sm font-bold text-white">
-                    Filtro ativo: Mostrando {sortedInventory.length} de {inventory.length} produtos
+                  <Filter className="w-3.5 h-3.5 text-orange-600" />
+                  <span className="text-xs font-semibold text-orange-800">
+                    {sortedInventory.length} de {inventory.length} produtos
                   </span>
                 </motion.div>
               )}
@@ -656,7 +606,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
           </motion.div>
 
           {/* Lista de Itens */}
-          <div className="overflow-y-auto max-h-[calc(100vh-400px)] pr-2 custom-scrollbar">
+          <div className="overflow-y-auto max-h-[calc(100vh-450px)] pr-2 sm:pr-4 custom-scrollbar">
             {sortedInventory.length === 0 ? (
               <div className="text-center py-16 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
                 <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -670,167 +620,184 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 pb-4">
-              {sortedInventory.map(item => {
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 pb-6">
+              {sortedInventory.map((item, index) => {
                 const isLowStock = item.quantity < 10;
                 const ProductIcon = getProductIcon(item.name);
                 
                 return (
                   <motion.div
                     key={item.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 bg-white border-2 ${
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ 
+                      duration: 0.2,
+                      delay: index * 0.01,
+                      ease: "easeOut"
+                    }}
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    className={`group relative aspect-square rounded-lg overflow-hidden bg-white border-2 transition-all duration-200 shadow-sm hover:shadow-lg ${
                       isLowStock 
-                        ? 'border-red-400 hover:border-red-500' 
-                        : 'border-green-400 hover:border-green-500'
+                        ? 'border-red-400 hover:border-red-600' 
+                        : 'border-orange-300 hover:border-orange-500'
                     }`}
                   >
-                    {/* Header do Card - Compacto */}
-                    <div className={`px-2.5 py-1.5 ${
+                    {/* Header Compacto - Cores Mega Promo */}
+                    <div className={`relative px-2.5 py-1.5 ${
                       isLowStock 
                         ? 'bg-gradient-to-r from-red-500 to-red-600' 
-                        : 'bg-gradient-to-r from-green-500 to-green-600'
+                        : 'bg-gradient-to-r from-orange-500 to-amber-600'
                     }`}>
-                      <div className="flex items-center gap-1.5">
-                        <ProductIcon className="w-3.5 h-3.5 text-white" />
-                        <span className="text-white font-black uppercase text-[10px] tracking-wide">
-                          {isLowStock ? 'Estoque Baixo' : 'Normal'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Corpo do Card - Compacto */}
-                    <div className="p-3">
-                      {/* Nome do Produto com ícone */}
-                      <div className="flex items-start gap-2 mb-2">
-                        <div className="p-1.5 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg mt-0.5 shrink-0">
-                          <ProductIcon className="w-3.5 h-3.5 text-gray-700" />
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <ProductIcon className="w-3.5 h-3.5 text-white" />
+                          <span className="text-white font-bold uppercase text-[9px] tracking-wide leading-tight">
+                            {isLowStock ? 'Baixo' : 'OK'}
+                          </span>
                         </div>
-                        <h3 className="font-black text-gray-900 text-sm flex-1 line-clamp-2 leading-tight">
-                          {item.name}
-                        </h3>
                         {/* Botões de Ação - Compactos */}
-                        <div className="flex gap-1 shrink-0">
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           {onEdit && (
                             <button
-                              onClick={() => handleEditClick(item)}
-                              className="p-1.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-600 hover:bg-blue-500 hover:text-white hover:border-blue-600 transition-all shadow-sm hover:shadow-md group"
-                              title="Editar quantidade"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditClick(item);
+                              }}
+                              className="p-1 rounded bg-white/20 hover:bg-white/30 text-white transition-all"
+                              title="Editar"
                             >
-                              <Edit className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                              <Edit className="w-3 h-3" />
                             </button>
                           )}
                           {onDelete && (
                             <button
-                              onClick={() => handleDeleteClick(item)}
-                              className="p-1.5 rounded-lg bg-red-50 border border-red-200 text-red-600 hover:bg-red-500 hover:text-white hover:border-red-600 transition-all shadow-sm hover:shadow-md group"
-                              title="Excluir produto"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteClick(item);
+                              }}
+                              className="p-1 rounded bg-white/20 hover:bg-white/30 text-white transition-all"
+                              title="Excluir"
                             >
-                              <Trash2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                              <Trash2 className="w-3 h-3" />
                             </button>
                           )}
                         </div>
                       </div>
-                      
-                      {/* Tamanho/Variação - Compacto */}
-                      <div className="flex items-center gap-1.5 mb-2 pb-2 border-b border-gray-200">
-                        {(() => {
-                          const sizeColor = getSizeColor(item.size);
-                          const isNumeric = !isNaN(parseInt(item.size)) && parseInt(item.size) !== 0;
-                          const num = parseInt(item.size);
-                          const isAutoGenerated = isNumeric && (num < 33 || num > 50);
-                          
-                          if (isAutoGenerated) {
-                            // Usar styles inline para cores geradas
-                            const generateUniqueColor = (number: number) => {
-                              const hash = ((number * 2654435761) % 360);
-                              const hue = Math.abs(hash) % 360;
-                              const saturation = 65;
-                              const lightness = 55;
-                              
-                              const hslToRgb = (h: number, s: number, l: number) => {
-                                s /= 100;
-                                l /= 100;
-                                const k = (n: number) => (n + h / 30) % 12;
-                                const a = s * Math.min(l, 1 - l);
-                                const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
-                                return [
-                                  Math.round(255 * f(0)),
-                                  Math.round(255 * f(8)),
-                                  Math.round(255 * f(4))
-                                ];
-                              };
-                              
-                              const [r, g, b] = hslToRgb(hue, saturation, lightness);
-                              const [r2, g2, b2] = [Math.max(0, r - 25), Math.max(0, g - 25), Math.max(0, b - 25)];
-                              const [rb, gb, bb] = [Math.min(255, r + 60), Math.min(255, g + 60), Math.min(255, b + 60)];
-                              
-                              return {
-                                bg: `linear-gradient(to right, rgb(${r}, ${g}, ${b}), rgb(${r2}, ${g2}, ${b2}))`,
-                                border: `rgb(${rb}, ${gb}, ${bb})`,
-                              };
-                            };
+                    </div>
+
+                    {/* Corpo Compacto */}
+                    <div className="p-2.5 h-full flex flex-col justify-between">
+                      {/* Nome e Tamanho */}
+                      <div className="flex-1">
+                        <div className="flex items-start gap-1.5 mb-1.5">
+                          <div className={`p-1 rounded ${
+                            isLowStock 
+                              ? 'bg-red-50' 
+                              : 'bg-orange-50'
+                          }`}>
+                            <ProductIcon className={`w-3.5 h-3.5 ${
+                              isLowStock ? 'text-red-600' : 'text-orange-600'
+                            }`} />
+                          </div>
+                          <h3 className="font-bold text-gray-900 text-[11px] leading-tight line-clamp-2 flex-1">
+                            {item.name}
+                          </h3>
+                        </div>
+                        
+                        {/* Tamanho Badge */}
+                        <div className="mb-2">
+                          {(() => {
+                            const sizeColor = getSizeColor(item.size);
+                            const isNumeric = !isNaN(parseInt(item.size)) && parseInt(item.size) !== 0;
+                            const num = parseInt(item.size);
+                            const isAutoGenerated = isNumeric && (num < 33 || num > 50);
                             
-                            const uniqueColor = generateUniqueColor(num);
+                            if (isAutoGenerated) {
+                              const generateUniqueColor = (number: number) => {
+                                const hash = ((number * 2654435761) % 360);
+                                const hue = Math.abs(hash) % 360;
+                                const saturation = 65;
+                                const lightness = 55;
+                                
+                                const hslToRgb = (h: number, s: number, l: number) => {
+                                  s /= 100;
+                                  l /= 100;
+                                  const k = (n: number) => (n + h / 30) % 12;
+                                  const a = s * Math.min(l, 1 - l);
+                                  const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+                                  return [
+                                    Math.round(255 * f(0)),
+                                    Math.round(255 * f(8)),
+                                    Math.round(255 * f(4))
+                                  ];
+                                };
+                                
+                                const [r, g, b] = hslToRgb(hue, saturation, lightness);
+                                const [r2, g2, b2] = [Math.max(0, r - 25), Math.max(0, g - 25), Math.max(0, b - 25)];
+                                const [rb, gb, bb] = [Math.min(255, r + 60), Math.min(255, g + 60), Math.min(255, b + 60)];
+                                
+                                return {
+                                  bg: `linear-gradient(to right, rgb(${r}, ${g}, ${b}), rgb(${r2}, ${g2}, ${b2}))`,
+                                  border: `rgb(${rb}, ${gb}, ${bb})`,
+                                };
+                              };
+                              
+                              const uniqueColor = generateUniqueColor(num);
+                              
+                              return (
+                                <span 
+                                  className="inline-block px-1.5 py-0.5 text-white font-bold rounded text-[10px] border"
+                                  style={{
+                                    background: uniqueColor.bg,
+                                    borderColor: uniqueColor.border
+                                  }}
+                                >
+                                  {item.size}
+                                </span>
+                              );
+                            }
                             
                             return (
-                              <span 
-                                className="px-2 py-1 text-white font-black rounded-md shadow-sm border text-xs"
-                                style={{
-                                  background: uniqueColor.bg,
-                                  borderColor: uniqueColor.border
-                                }}
-                              >
+                              <span className={`inline-block px-1.5 py-0.5 ${sizeColor.bg} ${sizeColor.text} font-bold rounded text-[10px] border ${sizeColor.border}`}>
                                 {item.size}
                               </span>
                             );
-                          }
-                          
-                          // Usar classes Tailwind para cores predefinidas
-                          return (
-                            <span className={`px-2 py-1 ${sizeColor.bg} ${sizeColor.text} font-black rounded-md shadow-sm border text-xs ${sizeColor.border}`}>
-                              {item.size}
-                            </span>
-                          );
-                        })()}
+                          })()}
+                        </div>
                       </div>
 
-                      {/* Quantidade - Compacto */}
-                      <div className="flex items-end justify-between mb-2">
-                        <div>
-                          <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5 font-black">Qtd</p>
-                          <p className="text-3xl font-black text-gray-900 leading-none">
-                            {item.quantity}
-                          </p>
-                        </div>
-                        <div className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-black shadow-sm ${
+                      {/* Quantidade - Destaque Compacto */}
+                      <div className="mt-auto">
+                        <div className={`rounded-lg p-2 ${
                           isLowStock 
-                            ? 'bg-red-500 text-white' 
-                            : 'bg-green-500 text-white'
+                            ? 'bg-red-50 border border-red-200' 
+                            : 'bg-orange-50 border border-orange-200'
                         }`}>
-                          {isLowStock ? (
-                            <>
-                              <AlertCircle className="w-3 h-3" />
-                              <span>Baixo</span>
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle2 className="w-3 h-3" />
-                              <span>OK</span>
-                            </>
-                          )}
+                          <div className="flex items-baseline justify-between gap-1">
+                            <p className={`text-2xl sm:text-3xl font-black leading-none ${
+                              isLowStock ? 'text-red-700' : 'text-orange-700'
+                            }`}>
+                              {item.quantity}
+                            </p>
+                            <div className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold ${
+                              isLowStock 
+                                ? 'bg-red-500 text-white' 
+                                : 'bg-orange-500 text-white'
+                            }`}>
+                              {isLowStock ? (
+                                <AlertCircle className="w-2.5 h-2.5" />
+                              ) : (
+                                <CheckCircle2 className="w-2.5 h-2.5" />
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-
-                      {/* Data de Atualização - Compacto */}
-                      <div className="pt-2 border-t border-gray-200">
-                        <p className="text-[10px] text-gray-500">
-                          <span className="font-black">Atualizado:</span>{" "}
+                        
+                        {/* Data Compacta */}
+                        <p className="text-[9px] text-gray-500 mt-1.5 text-center">
                           {new Date(item.lastUpdated).toLocaleDateString('pt-BR', {
                             day: '2-digit',
-                            month: 'short',
-                            year: 'numeric'
+                            month: 'short'
                           })}
                         </p>
                       </div>

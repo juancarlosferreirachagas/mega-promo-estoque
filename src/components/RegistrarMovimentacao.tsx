@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   InventoryItem,
   ProductWithVariations,
@@ -112,32 +112,41 @@ export default function RegistrarMovimentacao({
     }
   }, []);
 
-  // Função para adicionar motivo customizado
-  const addCustomMotivo = (
+  // Função para adicionar motivo customizado - memoizada
+  const addCustomMotivo = useCallback((
     motivo: string,
     tipoMovimento: "entrada" | "saida",
   ) => {
     if (!motivo.trim()) return;
 
     if (tipoMovimento === "entrada") {
-      const newMotivos = [
-        ...customMotivosEntrada,
-        motivo.trim(),
-      ];
-      setCustomMotivosEntrada(newMotivos);
-      localStorage.setItem(
-        "customMotivosEntrada",
-        JSON.stringify(newMotivos),
-      );
+      setCustomMotivosEntrada(prev => {
+        const newMotivos = [...prev, motivo.trim()];
+        // Debounce para localStorage
+        setTimeout(() => {
+          try {
+            localStorage.setItem("customMotivosEntrada", JSON.stringify(newMotivos));
+          } catch (error) {
+            console.error("Erro ao salvar motivos de entrada:", error);
+          }
+        }, 300);
+        return newMotivos;
+      });
     } else {
-      const newMotivos = [...customMotivosSaida, motivo.trim()];
-      setCustomMotivosSaida(newMotivos);
-      localStorage.setItem(
-        "customMotivosSaida",
-        JSON.stringify(newMotivos),
-      );
+      setCustomMotivosSaida(prev => {
+        const newMotivos = [...prev, motivo.trim()];
+        // Debounce para localStorage
+        setTimeout(() => {
+          try {
+            localStorage.setItem("customMotivosSaida", JSON.stringify(newMotivos));
+          } catch (error) {
+            console.error("Erro ao salvar motivos de saída:", error);
+          }
+        }, 300);
+        return newMotivos;
+      });
     }
-  };
+  }, []);
 
   // Função para remover motivo customizado
   const removeCustomMotivo = (
@@ -236,7 +245,7 @@ export default function RegistrarMovimentacao({
     setCustomSize("");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
 
     const finalSize = isCustomSize ? customSize.trim() : size;
@@ -285,7 +294,7 @@ export default function RegistrarMovimentacao({
     setPersonName("");
     setResponsible(currentUser.username);
     setObservations("");
-  };
+  }, [name, size, customSize, reason, customReason, personName, responsible, observations, quantity, type, isCustomReason, isCustomSize, addCustomMotivo, onRegistrar, currentUser]);
 
   return (
     <Card className="border-gray-200 shadow">

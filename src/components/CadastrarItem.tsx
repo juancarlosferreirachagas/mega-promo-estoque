@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -15,8 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { PlusCircle, Info, Package } from "lucide-react";
-import { ProductWithVariations } from "../App";
+import { PlusCircle, Info, Package, X } from "lucide-react";
+import { ProductWithVariations } from "../AppWithSupabase";
 
 interface CadastrarItemProps {
   onCadastrar: (
@@ -25,11 +25,15 @@ interface CadastrarItemProps {
     quantity: number,
   ) => void;
   allProducts: ProductWithVariations[];
+  customProducts: ProductWithVariations[];
+  onRemoveCustomProduct?: (productName: string) => void;
 }
 
 export default function CadastrarItem({
   onCadastrar,
   allProducts,
+  customProducts = [],
+  onRemoveCustomProduct,
 }: CadastrarItemProps) {
   const [product, setProduct] = useState("");
   const [customProductName, setCustomProductName] =
@@ -157,7 +161,7 @@ export default function CadastrarItem({
     setSelectedSizes([]);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
 
     const finalProductName = isCustomProduct
@@ -212,6 +216,7 @@ export default function CadastrarItem({
     setQuantity(0);
     setSelectedSizes([]);
     setMultipleMode(false);
+  }, [product, customProductName, isCustomProduct, size, customSize, isCustomSize, quantity, multipleMode, selectedSizes, onCadastrar]);
   };
 
   return (
@@ -279,6 +284,48 @@ export default function CadastrarItem({
               />
             )}
           </div>
+
+          {/* Seção de Produtos Customizados */}
+          {customProducts.length > 0 && onRemoveCustomProduct && (
+            <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-gray-700 font-medium text-sm flex items-center gap-2">
+                  <Package className="w-4 h-4 text-orange-600" />
+                  Produtos Customizados
+                </Label>
+                <span className="text-xs text-gray-500">
+                  {customProducts.length} produto(s)
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {customProducts.map((customProduct) => (
+                  <div
+                    key={customProduct.name}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-orange-300 rounded-md shadow-sm"
+                  >
+                    <span className="text-sm font-medium text-gray-700">
+                      {customProduct.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm(`Deseja remover o produto "${customProduct.name}" da lista?`)) {
+                          onRemoveCustomProduct(customProduct.name);
+                          if (product === customProduct.name) {
+                            setProduct("");
+                          }
+                        }
+                      }}
+                      className="p-0.5 rounded hover:bg-red-100 text-red-600 transition-colors"
+                      title="Remover produto customizado"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Tipo de Variação - Lista Compacta */}
           {isCustomProduct && (

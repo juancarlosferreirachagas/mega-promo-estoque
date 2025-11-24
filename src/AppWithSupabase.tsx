@@ -168,32 +168,46 @@ export default function AppWithSupabase() {
     }
   };
 
-  // Salvar produtos customizados no localStorage
+  // Salvar produtos customizados no localStorage com debounce
   useEffect(() => {
-    localStorage.setItem('customProducts', JSON.stringify(customProducts));
+    const timeoutId = setTimeout(() => {
+      try {
+        localStorage.setItem('customProducts', JSON.stringify(customProducts));
+      } catch (error) {
+        console.error('Erro ao salvar produtos customizados no localStorage:', error);
+      }
+    }, 300); // Debounce de 300ms
+
+    return () => clearTimeout(timeoutId);
   }, [customProducts]);
 
-  // Combinar produtos padrão com customizados
-  const allProducts = [...PRODUCTS, ...customProducts];
+  // Função para remover produto customizado - memoizada
+  const handleRemoveCustomProduct = useCallback((productName: string) => {
+    setCustomProducts(prev => prev.filter(p => p.name !== productName));
+    showMessage('Produto Removido', `O produto "${productName}" foi removido da lista de produtos customizados.`);
+  }, [showMessage]);
 
-  // Funções auxiliares
-  const showMessage = (title: string, body: string) => {
+  // Combinar produtos padrão com customizados - memoizado
+  const allProducts = useMemo(() => [...PRODUCTS, ...customProducts], [customProducts]);
+
+  // Funções auxiliares - memoizadas com useCallback
+  const showMessage = useCallback((title: string, body: string) => {
     setMessageModal({ isOpen: true, title, body });
-  };
+  }, []);
 
-  const closeMessage = () => {
+  const closeMessage = useCallback(() => {
     setMessageModal({ isOpen: false, title: '', body: '' });
-  };
+  }, []);
 
-  const refreshInventory = async () => {
+  const refreshInventory = useCallback(async () => {
     const inventoryData = await api.getInventory();
     setInventory(inventoryData);
-  };
+  }, []);
 
-  const refreshMovements = async () => {
+  const refreshMovements = useCallback(async () => {
     const movementsData = await api.getMovements();
     setMovements(movementsData);
-  };
+  }, []);
 
   // Funções de autenticação
   const handleLogin = async (username: string, password: string): Promise<boolean> => {
@@ -237,8 +251,8 @@ export default function AppWithSupabase() {
     localStorage.removeItem('currentUser');
   };
 
-  // Funções de estoque
-  const handleAddItem = async (name: string, size: string, quantity: number) => {
+  // Funções de estoque - memoizadas
+  const handleAddItem = useCallback(async (name: string, size: string, quantity: number) => {
     try {
       const newItem = await api.createInventoryItem(name, size, quantity);
       
@@ -246,20 +260,19 @@ export default function AppWithSupabase() {
         await refreshInventory();
         
         // Adicionar produto customizado se não existir
-        if (!allProducts?.find(p => p.name === name)) {
-          const newProduct = { name, variations: [size] };
-          setCustomProducts([...customProducts, newProduct]);
-        } else {
-          const product = allProducts.find(p => p.name === name);
-          if (product && !product.variations.includes(size)) {
-            const updatedProducts = customProducts.map(p =>
+        setCustomProducts(prev => {
+          const existingProduct = allProducts.find(p => p.name === name);
+          if (!existingProduct) {
+            return [...prev, { name, variations: [size] }];
+          } else if (existingProduct && !existingProduct.variations.includes(size)) {
+            return prev.map(p =>
               p.name === name
                 ? { ...p, variations: [...p.variations, size] }
                 : p
             );
-            setCustomProducts(updatedProducts);
           }
-        }
+          return prev;
+        });
 
         showMessage('Item Cadastrado', `${name} (${size}) foi adicionado ao estoque com quantidade ${quantity}.`);
         return true;
@@ -282,9 +295,9 @@ export default function AppWithSupabase() {
       }
       return false;
     }
-  };
+  }, [allProducts, refreshInventory, showMessage]);
 
-  const handleMovement = async (
+  const handleMovement = useCallback(async (
     name: string,
     size: string,
     type: 'entrada' | 'saida',
@@ -336,9 +349,9 @@ export default function AppWithSupabase() {
       showMessage('Erro', 'Erro ao registrar movimentação no banco de dados.');
       return false;
     }
-  };
+  }, [inventory, currentUser, refreshInventory, refreshMovements, showMessage]);
 
-  const handleEditMovement = async (
+  const handleEditMovement = useCallback(async (
     movementId: string,
     type: 'entrada' | 'saida',
     quantity: number,
@@ -380,9 +393,9 @@ export default function AppWithSupabase() {
       showMessage('Erro', 'Erro ao atualizar movimentação no banco de dados.');
       return false;
     }
-  };
+  }, [currentUser, refreshInventory, refreshMovements, showMessage]);
 
-  const handleDeleteMovement = async (movementId: string) => {
+  const handleDeleteMovement = useCallback(async (movementId: string) => {
     try {
       const result = await api.deleteMovement(movementId);
 
@@ -401,9 +414,9 @@ export default function AppWithSupabase() {
       showMessage('Erro', 'Erro ao excluir movimentação do banco de dados.');
       return false;
     }
-  };
+  }, [refreshInventory, refreshMovements, showMessage]);
 
-  const handleEditItem = async (itemId: string, quantity: number) => {
+  const handleEditItem = useCallback(async (itemId: string, quantity: number) => {
     try {
       const updatedItem = await api.updateInventoryItem(itemId, quantity);
 
@@ -424,9 +437,9 @@ export default function AppWithSupabase() {
       showMessage('Erro', 'Erro ao atualizar item no banco de dados.');
       return false;
     }
-  };
+  }, [refreshInventory, showMessage]);
 
-  const handleDeleteItem = async (itemId: string, itemName: string) => {
+  const handleDeleteItem = useCallback(async (itemId: string, itemName: string) => {
     try {
       const result = await api.deleteInventoryItem(itemId);
 
@@ -452,18 +465,18 @@ export default function AppWithSupabase() {
       showMessage('Erro', 'Erro ao remover item do banco de dados.');
       return false;
     }
-  };
+  }, [refreshInventory, refreshMovements, showMessage]);
 
-  const openEditModal = (movement: Movement) => {
+  const openEditModal = useCallback((movement: Movement) => {
     setEditModal({ isOpen: true, movement });
-  };
+  }, []);
 
-  const closeEditModal = () => {
+  const closeEditModal = useCallback(() => {
     setEditModal({ isOpen: false, movement: null });
-  };
+  }, []);
 
-  // Verificar permissões
-  const hasPermission = (permission: string): boolean => {
+  // Verificar permissões - memoizada
+  const hasPermission = useCallback((permission: string): boolean => {
     if (!currentUser) return false;
     if (currentUser.isMaster) return true;
 
@@ -482,7 +495,7 @@ export default function AppWithSupabase() {
       default:
         return false;
     }
-  };
+  }, [currentUser]);
 
   // Renderização condicional baseada na inicialização do banco
   if (isLoading) {
@@ -658,7 +671,9 @@ export default function AppWithSupabase() {
             <TabsContent value="cadastrar">
               <CadastrarItem
                 allProducts={allProducts}
+                customProducts={customProducts}
                 onCadastrar={handleAddItem}
+                onRemoveCustomProduct={handleRemoveCustomProduct}
               />
             </TabsContent>
           )}
