@@ -7,6 +7,17 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [1.0.5] - 2025-11-24
+
+### 🔄 Alterado
+- Atualizações e melhorias gerais no sistema
+- Refatorações de código para melhor manutenibilidade
+- Otimizações de componentes
+
+### 🧹 Limpeza de Código
+- Melhorias na organização do código
+- Atualização de dependências e imports
+
 ## [1.0.4] - 2025-11-24
 
 ### 🐛 Corrigido

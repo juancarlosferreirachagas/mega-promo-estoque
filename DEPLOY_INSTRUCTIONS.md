@@ -16,7 +16,7 @@ O Vercel está configurado para fazer deploy automático quando você fizer push
 1. Faça push das mudanças para o GitHub:
    ```bash
    git push origin main
-   git push origin v1.0.3
+   git push origin v1.0.5
    ```
 
 2. O Vercel detectará automaticamente e fará o deploy
@@ -45,22 +45,23 @@ Se preferir fazer deploy manual:
   - [x] Cadastrar Item
   - [x] Registrar Movimentação
   - [x] Gerenciar Usuários
-- [x] Versão tagada no Git (`v1.0.3`)
+- [x] Versão tagada no Git (`v1.0.5`)
 - [x] Changelog atualizado
 - [x] Documentação atualizada
 
 ## 📊 Versões
 
-### Versão Atual: v1.0.3
+### Versão Atual: v1.0.5
 
 **Mudanças principais:**
-- ✅ Correção crítica da aba Histórico
-- ✅ Imports corrigidos
-- ✅ Performance otimizada
-- ✅ Código limpo e organizado
+- ✅ Melhorias e correções gerais
+- ✅ Refatorações de código
+- ✅ Otimizações de componentes
 
 ### Versões Anteriores
 
+- **v1.0.4**: Correção de validação de tamanho e redesign de cards
+- **v1.0.3**: Correção crítica da aba Histórico
 - **v1.0.2**: Otimizações de performance
 - **v1.0.1**: Filtros dinâmicos e edição de itens
 - **v1.0.0**: Versão inicial
@@ -107,7 +108,7 @@ Se algo der errado após o deploy:
 
 3. **Voltar para versão anterior:**
    ```bash
-   git checkout v1.0.2
+   git checkout v1.0.4
    git push origin main --force
    ```
 
@@ -120,7 +121,7 @@ Se algo der errado após o deploy:
 
 ## ✅ Status Atual
 
-**Versão**: v1.0.3  
+**Versão**: v1.0.5  
 **Status**: ✅ Pronto para Deploy  
 **Risco**: 🟢 Baixo (todas as verificações passaram)  
 **Testado**: ✅ Sim, localmente
