@@ -136,7 +136,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
 
   const handleExportExcel = useCallback(async () => {
     if (inventory.length === 0) {
-      alert('Não há itens no estoque para exportar.');
+      alert('NÃO HÁ ITENS NO ESTOQUE PARA EXPORTAR.');
       return;
     }
 
@@ -313,7 +313,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
     link.click();
 
     const totalQuantity = inventory.reduce((sum, item) => sum + item.quantity, 0);
-    alert(`✅ Estoque exportado com sucesso!\n\n📦 ${inventory.length} produto(s)\n📊 ${totalQuantity} unidade(s) total\n📁 Arquivo: ${fileName}`);
+    alert(`✅ ESTOQUE EXPORTADO COM SUCESSO!\n\n📦 ${inventory.length} PRODUTO(S)\n📊 ${totalQuantity} UNIDADE(S) TOTAL\n📁 ARQUIVO: ${fileName}`);
   }, [inventory]);
 
   // Aplicar filtros
@@ -392,7 +392,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
     
     const newQuantity = parseInt(editingQuantity.value);
     if (isNaN(newQuantity) || newQuantity < 0) {
-      alert('Por favor, insira uma quantidade válida (número maior ou igual a zero).');
+      alert('POR FAVOR, INSIRA UMA QUANTIDADE VÁLIDA (NÚMERO MAIOR OU IGUAL A ZERO).');
       setEditingQuantity(null);
       return;
     }
@@ -401,7 +401,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
     if (success) {
       setEditingQuantity(null);
     } else {
-      alert('Erro ao atualizar a quantidade. Tente novamente.');
+      alert('ERRO AO ATUALIZAR A QUANTIDADE. TENTE NOVAMENTE.');
     }
   }, [editingQuantity, onEdit]);
 
@@ -416,7 +416,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <CardTitle className="flex items-center gap-2">
               <Package className="w-5 h-5" />
-              Inventário Atual
+              ESTOQUE ATUAL
             </CardTitle>
             <Button
               onClick={handleExportExcel}
@@ -424,7 +424,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
               disabled={inventory.length === 0}
             >
               <FileText className="w-4 h-4" />
-              Exportar Excel
+              EXPORTAR EXCEL
             </Button>
           </div>
         </CardHeader>
@@ -436,7 +436,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
                   <Filter className="w-4 h-4 text-white" />
-                  <h3 className="font-bold text-white text-sm">Filtros</h3>
+                  <h3 className="font-bold text-white text-sm">FILTROS</h3>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="px-2.5 py-1 bg-white/20 rounded-lg backdrop-blur-sm">
@@ -455,7 +455,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                       }}
                       className="bg-white/20 hover:bg-white/30 text-white border border-white/30 h-auto py-1 px-2.5 text-xs font-semibold rounded-lg transition-all"
                     >
-                      Limpar
+                      LIMPAR
                     </Button>
                   )}
                 </div>
@@ -471,7 +471,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                   <Input
                     id="search"
                     type="text"
-                    placeholder="Buscar produto ou tamanho..."
+                    placeholder="BUSCAR PRODUTO OU TAMANHO..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-9 pr-8 h-9 bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-200 rounded-lg text-sm"
@@ -492,7 +492,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                 {/* Filtro de Produto */}
                 <div>
                   <Label htmlFor="product-filter" className="text-xs text-gray-600 font-semibold mb-1 block">
-                    Produto
+                    PRODUTO
                   </Label>
                   <Select 
                     value={productFilter} 
@@ -502,10 +502,10 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                     }}
                   >
                     <SelectTrigger id="product-filter" className="h-9 bg-gray-50 border border-gray-200 hover:border-orange-300 focus:border-orange-500 rounded-lg text-sm">
-                      <SelectValue placeholder="Todos" />
+                      <SelectValue placeholder="TODOS" />
                     </SelectTrigger>
                     <SelectContent className="max-h-[250px] select-scrollbar">
-                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="all">TODOS</SelectItem>
                       {availableProducts.map((product) => (
                         <SelectItem key={product} value={product}>
                           {product}
@@ -518,14 +518,14 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                 {/* Filtro de Tamanho */}
                 <div>
                   <Label htmlFor="size-filter" className="text-xs text-gray-600 font-semibold mb-1 block">
-                    Tamanho
+                    TAMANHO
                   </Label>
                   <Select value={sizeFilter} onValueChange={setSizeFilter}>
                     <SelectTrigger id="size-filter" className="h-9 bg-gray-50 border border-gray-200 hover:border-orange-300 focus:border-orange-500 rounded-lg text-sm">
-                      <SelectValue placeholder="Todos" />
+                      <SelectValue placeholder="TODOS" />
                     </SelectTrigger>
                     <SelectContent className="max-h-[250px] select-scrollbar">
-                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="all">TODOS</SelectItem>
                       {availableSizes.map((size) => (
                         <SelectItem key={size} value={size}>
                           {size}
@@ -538,24 +538,24 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                 {/* Filtro de Status */}
                 <div>
                   <Label htmlFor="status-filter" className="text-xs text-gray-600 font-semibold mb-1 block">
-                    Situação
+                    SITUAÇÃO
                   </Label>
                   <Select value={statusFilter} onValueChange={(value: 'all' | 'low' | 'ok') => setStatusFilter(value)}>
                     <SelectTrigger id="status-filter" className="h-9 bg-gray-50 border border-gray-200 hover:border-orange-300 focus:border-orange-500 rounded-lg text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="max-h-[250px] select-scrollbar">
-                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="all">TODOS</SelectItem>
                       <SelectItem value="low">
                         <div className="flex items-center gap-2">
                           <AlertCircle className="w-3.5 h-3.5 text-red-600" />
-                          <span>Baixo</span>
+                          <span>BAIXO</span>
                         </div>
                       </SelectItem>
                       <SelectItem value="ok">
                         <div className="flex items-center gap-2">
                           <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-                          <span>Normal</span>
+                          <span>NORMAL</span>
                         </div>
                       </SelectItem>
                     </SelectContent>
@@ -565,17 +565,17 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                 {/* Filtro de Ordenação */}
                 <div>
                   <Label htmlFor="sort-by" className="text-xs text-gray-600 font-semibold mb-1 block">
-                    Ordenar
+                    ORDENAR
                   </Label>
                   <Select value={sortBy} onValueChange={(value: typeof sortBy) => setSortBy(value)}>
                     <SelectTrigger id="sort-by" className="h-9 bg-gray-50 border border-gray-200 hover:border-orange-300 focus:border-orange-500 rounded-lg text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="max-h-[250px] select-scrollbar">
-                      <SelectItem value="name-asc">A→Z</SelectItem>
-                      <SelectItem value="name-desc">Z→A</SelectItem>
-                      <SelectItem value="quantity-asc">Qtd ↑</SelectItem>
-                      <SelectItem value="quantity-desc">Qtd ↓</SelectItem>
+                      <SelectItem value="name-asc">A→Z NOME ↑</SelectItem>
+                      <SelectItem value="name-desc">Z→A NOME ↓</SelectItem>
+                      <SelectItem value="quantity-asc">QTD ↑</SelectItem>
+                      <SelectItem value="quantity-desc">QTD ↓</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -592,7 +592,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                     <AlertCircle className={`w-3.5 h-3.5 ${
                       inventory.filter(i => i.quantity < 10).length > 0 ? 'text-red-600' : 'text-gray-400'
                     }`} />
-                    <span className="text-xs font-semibold text-gray-700">Baixo</span>
+                    <span className="text-xs font-semibold text-gray-700">BAIXO</span>
                   </div>
                   <p className={`text-lg font-black ${
                     inventory.filter(i => i.quantity < 10).length > 0 ? 'text-red-700' : 'text-gray-500'
@@ -603,7 +603,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                 <div className="p-2.5 rounded-lg bg-green-50 border border-green-200">
                   <div className="flex items-center gap-1.5 mb-1">
                     <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-                    <span className="text-xs font-semibold text-gray-700">Normal</span>
+                    <span className="text-xs font-semibold text-gray-700">NORMAL</span>
                   </div>
                   <p className="text-lg font-black text-green-700">
                     {inventory.filter(i => i.quantity >= 10).length}
@@ -616,7 +616,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                 <div className="flex items-center gap-2 p-2 bg-orange-50 border border-orange-200 rounded-lg">
                   <Filter className="w-3.5 h-3.5 text-orange-600" />
                   <span className="text-xs font-semibold text-orange-800">
-                    {sortedInventory.length} de {inventory.length} produtos
+                    {sortedInventory.length} DE {inventory.length} PRODUTOS
                   </span>
                 </div>
               )}
@@ -630,11 +630,11 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                 <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-600 font-medium mb-2">
                   {inventory.length === 0 
-                    ? 'Nenhum produto cadastrado ainda'
-                    : 'Nenhum produto encontrado com os filtros selecionados'}
+                    ? 'NENHUM PRODUTO CADASTRADO AINDA'
+                    : 'NENHUM PRODUTO ENCONTRADO COM OS FILTROS SELECIONADOS'}
                 </p>
                 <p className="text-gray-400 text-sm">
-                  {inventory.length === 0 && 'Comece cadastrando um novo item na aba "Cadastrar"'}
+                  {inventory.length === 0 && 'COMECE CADASTRANDO UM NOVO ITEM NA ABA "CADASTRAR"'}
                 </p>
               </div>
             ) : (
@@ -675,7 +675,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                               handleDeleteClick(item);
                             }}
                             className="p-1.5 rounded-md bg-white/20 hover:bg-white/30 text-white transition-colors shadow-sm hover:shadow-md"
-                            title="Excluir produto"
+                            title="EXCLUIR PRODUTO"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -687,12 +687,13 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                     <div className="p-3 h-full flex flex-col justify-between">
                       {/* Nome do Produto */}
                       <div className="flex-1 mb-3">
-                        <h3 className="font-bold text-gray-900 text-sm leading-snug line-clamp-2 mb-3">
+                        <h3 className="font-bold text-gray-900 text-sm leading-snug line-clamp-2 mb-3 uppercase">
                           {item.name}
                         </h3>
                         
                         {/* Tamanho Badge - Maior */}
                         <div className="mb-2">
+                          <span className="text-[11px] text-gray-600 font-bold uppercase tracking-wide mr-1.5 block mb-1">TAMANHO:</span>
                           {(() => {
                             const sizeColor = getSizeColor(item.size);
                             const isNumeric = !isNaN(parseInt(item.size)) && parseInt(item.size) !== 0;
@@ -733,7 +734,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                               
                               return (
                                 <span 
-                                  className="inline-block px-3 py-1.5 text-white font-bold rounded-lg text-xs border-2 shadow-md"
+                                  className="inline-block px-3 py-1.5 text-white font-bold rounded-lg text-xs border-2 shadow-md uppercase"
                                   style={{
                                     background: uniqueColor.bg,
                                     borderColor: uniqueColor.border
@@ -745,7 +746,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                             }
                             
                             return (
-                              <span className={`inline-block px-3 py-1.5 ${sizeColor.bg} ${sizeColor.text} font-bold rounded-lg text-xs border-2 ${sizeColor.border} shadow-md`}>
+                              <span className={`inline-block px-3 py-1.5 ${sizeColor.bg} ${sizeColor.text} font-bold rounded-lg text-xs border-2 ${sizeColor.border} shadow-md uppercase`}>
                                 {item.size}
                               </span>
                             );
@@ -755,6 +756,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
 
                       {/* Quantidade - Edição Inline */}
                       <div className="mt-auto">
+                        <span className="text-[11px] text-gray-600 font-bold uppercase tracking-wide mb-2 block">QUANTIDADE:</span>
                         <div className={`rounded-lg p-3 border-2 ${
                           isLowStock 
                             ? 'bg-red-50 border-red-300' 
@@ -787,14 +789,14 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                                 <button
                                   onClick={() => handleInlineEditSave(item.id)}
                                   className="p-1.5 rounded-md bg-green-500 hover:bg-green-600 text-white transition-colors"
-                                  title="Salvar"
+                                  title="SALVAR"
                                 >
                                   <CheckCircle2 className="w-4 h-4" />
                                 </button>
                                 <button
                                   onClick={handleInlineEditCancel}
                                   className="p-1.5 rounded-md bg-gray-400 hover:bg-gray-500 text-white transition-colors"
-                                  title="Cancelar"
+                                  title="CANCELAR"
                                 >
                                   <X className="w-4 h-4" />
                                 </button>
@@ -804,7 +806,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                                 <div 
                                   className="flex items-center gap-2 flex-1 cursor-pointer group"
                                   onClick={() => onEdit && handleInlineEditStart(item)}
-                                  title="Clique para editar quantidade"
+                                  title="CLIQUE PARA EDITAR QUANTIDADE"
                                 >
                                   <p className={`text-4xl font-black leading-none ${
                                     isLowStock ? 'text-red-700' : 'text-green-700'
@@ -840,11 +842,11 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                         </div>
                         
                         {/* Data */}
-                        <p className="text-[10px] text-gray-500 mt-2.5 text-center font-medium">
-                          Atualizado: {new Date(item.lastUpdated).toLocaleDateString('pt-BR', {
+                        <p className="text-[10px] text-gray-500 mt-2.5 text-center font-medium uppercase">
+                          ATUALIZADO: {new Date(item.lastUpdated).toLocaleDateString('pt-BR', {
                             day: '2-digit',
                             month: 'short'
-                          })}
+                          }).toUpperCase()}
                         </p>
                       </div>
                     </div>
@@ -861,14 +863,14 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
       <AlertDialog open={deleteDialog.isOpen} onOpenChange={(open) => setDeleteDialog({ isOpen: open, item: deleteDialog.item })}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Item</AlertDialogTitle>
+            <AlertDialogTitle>EXCLUIR ITEM</AlertDialogTitle>
             <AlertDialogDescription>
-              Você tem certeza que deseja excluir o item <span className="font-bold">{deleteDialog.item?.name} ({deleteDialog.item?.size})</span> do inventário?
+              VOCÊ TEM CERTEZA QUE DESEJA EXCLUIR O ITEM <span className="font-bold">{deleteDialog.item?.name?.toUpperCase()} ({deleteDialog.item?.size?.toUpperCase()})</span> DO INVENTÁRIO?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete}>Excluir</AlertDialogAction>
+            <AlertDialogCancel>CANCELAR</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete}>EXCLUIR</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

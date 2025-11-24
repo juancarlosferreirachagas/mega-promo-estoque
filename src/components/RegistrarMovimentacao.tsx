@@ -358,7 +358,7 @@ export default function RegistrarMovimentacao({
                         value={itemName}
                         className="rounded-lg"
                       >
-                        {itemName}
+                        {itemName.toUpperCase()}
                       </SelectItem>
                     ))
                   )}
@@ -400,7 +400,7 @@ export default function RegistrarMovimentacao({
                       value={itemSize}
                       className="rounded-lg"
                     >
-                      {itemSize}
+                      {itemSize.toUpperCase()}
                     </SelectItem>
                   ))}
                   {availableSizes.length > 0 && (
@@ -411,7 +411,7 @@ export default function RegistrarMovimentacao({
                       <div className="flex items-center gap-2 text-amber-600">
                         <AlertCircle className="w-3.5 h-3.5" />
                         <span className="font-semibold">
-                          Personalizado
+                          PERSONALIZADO
                         </span>
                       </div>
                     </SelectItem>
@@ -469,7 +469,7 @@ export default function RegistrarMovimentacao({
                         <ArrowUpCircle className="w-3.5 h-3.5 text-green-600" />
                       </div>
                       <span className="font-semibold">
-                        Entrada
+                        ENTRADA
                       </span>
                     </div>
                   </SelectItem>
@@ -482,7 +482,7 @@ export default function RegistrarMovimentacao({
                         <ArrowDownCircle className="w-3.5 h-3.5 text-red-600" />
                       </div>
                       <span className="font-semibold">
-                        Saída
+                        SAÍDA
                       </span>
                     </div>
                   </SelectItem>
@@ -538,7 +538,7 @@ export default function RegistrarMovimentacao({
                         value={motivo}
                         className="rounded-lg"
                       >
-                        {motivo}
+                        {motivo.toUpperCase()}
                       </SelectItem>
                     ))}
                     {/* Motivos customizados */}
@@ -554,7 +554,7 @@ export default function RegistrarMovimentacao({
                             className="rounded-lg bg-amber-50/50"
                           >
                             <div className="flex items-center gap-2 justify-between w-full">
-                              <span>{motivo}</span>
+                              <span>{motivo.toUpperCase()}</span>
                               <span className="text-[9px] px-1.5 py-0.5 bg-amber-200 text-amber-800 rounded font-black">
                                 CUSTOM
                               </span>
@@ -571,7 +571,7 @@ export default function RegistrarMovimentacao({
                       <div className="flex items-center gap-2 text-amber-600">
                         <AlertCircle className="w-3.5 h-3.5" />
                         <span className="font-semibold">
-                          + Outros
+                          + OUTROS
                         </span>
                       </div>
                     </SelectItem>
@@ -587,7 +587,7 @@ export default function RegistrarMovimentacao({
                         value={motivo}
                         className="rounded-lg"
                       >
-                        {motivo}
+                        {motivo.toUpperCase()}
                       </SelectItem>
                     ))}
                     {/* Motivos customizados */}
@@ -603,7 +603,7 @@ export default function RegistrarMovimentacao({
                             className="rounded-lg bg-amber-50/50"
                           >
                             <div className="flex items-center gap-2 justify-between w-full">
-                              <span>{motivo}</span>
+                              <span>{motivo.toUpperCase()}</span>
                               <span className="text-[9px] px-1.5 py-0.5 bg-amber-200 text-amber-800 rounded font-black">
                                 CUSTOM
                               </span>
@@ -620,7 +620,7 @@ export default function RegistrarMovimentacao({
                       <div className="flex items-center gap-2 text-amber-600">
                         <AlertCircle className="w-3.5 h-3.5" />
                         <span className="font-semibold">
-                          + Criar Novo
+                          + CRIAR NOVO
                         </span>
                       </div>
                     </SelectItem>

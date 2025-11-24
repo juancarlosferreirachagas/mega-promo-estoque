@@ -204,6 +204,19 @@ export default function AppWithSupabase() {
     showMessage('Produto Removido', `O produto "${productName}" foi removido da lista de produtos customizados.`);
   }, [showMessage]);
 
+  // Função para atualizar produto customizado - memoizada
+  const handleUpdateCustomProduct = useCallback((oldName: string, newName: string, variations: string[]) => {
+    setCustomProducts(prev => {
+      const updated = prev.map(p => 
+        p.name === oldName 
+          ? { name: newName, variations }
+          : p
+      );
+      return updated;
+    });
+    showMessage('Produto Atualizado', `O produto "${oldName}" foi atualizado para "${newName}".`);
+  }, [showMessage]);
+
   // Combinar produtos padrão com customizados - memoizado
   const allProducts = useMemo(() => [...PRODUCTS, ...customProducts], [customProducts]);
 
@@ -692,6 +705,7 @@ export default function AppWithSupabase() {
                 customProducts={customProducts}
                 onCadastrar={handleAddItem}
                 onRemoveCustomProduct={handleRemoveCustomProduct}
+                onUpdateCustomProduct={handleUpdateCustomProduct}
               />
             </TabsContent>
           )}

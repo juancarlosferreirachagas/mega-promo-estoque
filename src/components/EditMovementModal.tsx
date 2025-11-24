@@ -200,7 +200,7 @@ export default function EditMovementModal({
                   <SelectContent className="max-h-[250px] select-scrollbar">
                     {allProducts.map((product) => (
                       <SelectItem key={product.name} value={product.name}>
-                        {product.name}
+                        {product.name.toUpperCase()}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -233,12 +233,12 @@ export default function EditMovementModal({
                     {availableSizes.length > 0 ? (
                       availableSizes.map((size) => (
                         <SelectItem key={size} value={size}>
-                          {size}
+                          {size.toUpperCase()}
                         </SelectItem>
                       ))
                     ) : (
                       <SelectItem value="none" disabled>
-                        Nenhum tamanho disponível
+                        NENHUM TAMANHO DISPONÍVEL
                       </SelectItem>
                     )}
                   </SelectContent>
@@ -278,13 +278,13 @@ export default function EditMovementModal({
                   <SelectItem value="entrada">
                     <div className="flex items-center gap-2">
                       <ArrowDownCircle className="w-4 h-4 text-green-600" />
-                      <span>Entrada (+)</span>
+                      <span>ENTRADA (+)</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="saida">
                     <div className="flex items-center gap-2">
                       <ArrowUpCircle className="w-4 h-4 text-red-600" />
-                      <span>Saída (-)</span>
+                      <span>SAÍDA (-)</span>
                     </div>
                   </SelectItem>
                 </SelectContent>
@@ -338,11 +338,11 @@ export default function EditMovementModal({
                 <SelectContent>
                   {type === "entrada" ? (
                     MOTIVOS_ENTRADA.map(motivo => (
-                      <SelectItem key={motivo} value={motivo}>{motivo}</SelectItem>
+                      <SelectItem key={motivo} value={motivo}>{motivo.toUpperCase()}</SelectItem>
                     ))
                   ) : (
                     MOTIVOS_SAIDA.map(motivo => (
-                      <SelectItem key={motivo} value={motivo}>{motivo}</SelectItem>
+                      <SelectItem key={motivo} value={motivo}>{motivo.toUpperCase()}</SelectItem>
                     ))
                   )}
                 </SelectContent>
