@@ -70,6 +70,7 @@ export interface User {
 }
 
 export default function AppWithSupabase() {
+  
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [movements, setMovements] = useState<Movement[]>([]);
   const [customProducts, setCustomProducts] = useState<ProductWithVariations[]>([]);
@@ -84,46 +85,12 @@ export default function AppWithSupabase() {
   const [users, setUsers] = useState<User[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Verificar se banco está inicializado
-  useEffect(() => {
-    checkDatabaseInit();
+  // Funções auxiliares - memoizadas com useCallback (definidas ANTES de serem usadas)
+  const showMessage = useCallback((title: string, body: string) => {
+    setMessageModal({ isOpen: true, title, body });
   }, []);
 
-  const checkDatabaseInit = async () => {
-    try {
-      // Tentar buscar usuários (vai falhar se tabela não existir)
-      const usersData = await api.getUsers();
-      
-      // Se chegou aqui sem erro, tabelas existem
-      console.log('✅ Tabelas encontradas! Total de usuários:', usersData.length);
-      setIsDatabaseInitialized(true);
-      loadInitialData();
-    } catch (error: any) {
-      console.log('Erro ao verificar banco:', error);
-      
-      // Detectar erro de tabela não encontrada
-      const errorMessage = error?.message || String(error);
-      const isTableNotFound = 
-        error?.code === 'PGRST205' || 
-        error?.tableNotFound || 
-        errorMessage.includes('Could not find the table') ||
-        errorMessage.includes('mega_promo_users') ||
-        errorMessage.includes('schema cache');
-      
-      if (isTableNotFound) {
-        console.log('❌ Tabelas não encontradas. Setup manual necessário.');
-        setIsDatabaseInitialized(false);
-      } else {
-        // Outro tipo de erro - também mostrar setup
-        console.error('Erro desconhecido ao verificar banco:', error);
-        setIsDatabaseInitialized(false);
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadInitialData = async () => {
+  const loadInitialData = useCallback(async () => {
     setIsLoading(true);
     try {
       // Carregar estoque
@@ -150,15 +117,23 @@ export default function AppWithSupabase() {
       // Carregar produtos customizados do localStorage (temporário)
       const savedCustomProducts = localStorage.getItem('customProducts');
       if (savedCustomProducts) {
-        setCustomProducts(JSON.parse(savedCustomProducts));
+        try {
+          setCustomProducts(JSON.parse(savedCustomProducts));
+        } catch (e) {
+          console.error('Erro ao parsear customProducts:', e);
+        }
       }
 
       // Verificar se tem usuário logado no localStorage
       const savedCurrentUser = localStorage.getItem('currentUser');
       if (savedCurrentUser) {
-        const user = JSON.parse(savedCurrentUser);
-        setCurrentUser(user);
-        setIsAuthenticated(true);
+        try {
+          const user = JSON.parse(savedCurrentUser);
+          setCurrentUser(user);
+          setIsAuthenticated(true);
+        } catch (e) {
+          console.error('Erro ao parsear currentUser:', e);
+        }
       }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
@@ -166,7 +141,49 @@ export default function AppWithSupabase() {
     } finally {
       setIsLoading(false);
     }
+  }, [showMessage]);
+
+  const checkDatabaseInit = async () => {
+    try {
+      // Tentar buscar usuários (vai falhar se tabela não existir)
+      const usersData = await api.getUsers();
+      
+      // Se chegou aqui sem erro, tabelas existem
+      console.log('✅ Tabelas encontradas! Total de usuários:', usersData.length);
+      setIsDatabaseInitialized(true);
+      await loadInitialData();
+    } catch (error: any) {
+      console.log('Erro ao verificar banco:', error);
+      
+      // Detectar erro de tabela não encontrada
+      const errorMessage = error?.message || String(error);
+      const isTableNotFound = 
+        error?.code === 'PGRST205' || 
+        error?.tableNotFound || 
+        errorMessage.includes('Could not find the table') ||
+        errorMessage.includes('mega_promo_users') ||
+        errorMessage.includes('schema cache') ||
+        errorMessage.includes('Failed to fetch') ||
+        errorMessage.includes('NetworkError');
+      
+      if (isTableNotFound) {
+        console.log('❌ Tabelas não encontradas. Setup manual necessário.');
+        setIsDatabaseInitialized(false);
+      } else {
+        // Outro tipo de erro - também mostrar setup
+        console.error('Erro desconhecido ao verificar banco:', error);
+        setIsDatabaseInitialized(false);
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  // Verificar se banco está inicializado
+  useEffect(() => {
+    checkDatabaseInit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Salvar produtos customizados no localStorage com debounce
   useEffect(() => {
@@ -189,11 +206,6 @@ export default function AppWithSupabase() {
 
   // Combinar produtos padrão com customizados - memoizado
   const allProducts = useMemo(() => [...PRODUCTS, ...customProducts], [customProducts]);
-
-  // Funções auxiliares - memoizadas com useCallback
-  const showMessage = useCallback((title: string, body: string) => {
-    setMessageModal({ isOpen: true, title, body });
-  }, []);
 
   const closeMessage = useCallback(() => {
     setMessageModal({ isOpen: false, title: '', body: '' });
@@ -261,7 +273,11 @@ export default function AppWithSupabase() {
         
         // Adicionar produto customizado se não existir
         setCustomProducts(prev => {
-          const existingProduct = allProducts.find(p => p.name === name);
+          // Verificar em PRODUCTS e customProducts
+          const existingInProducts = PRODUCTS.find(p => p.name === name);
+          const existingInCustom = prev.find(p => p.name === name);
+          const existingProduct = existingInProducts || existingInCustom;
+          
           if (!existingProduct) {
             return [...prev, { name, variations: [size] }];
           } else if (existingProduct && !existingProduct.variations.includes(size)) {
@@ -295,7 +311,7 @@ export default function AppWithSupabase() {
       }
       return false;
     }
-  }, [allProducts, refreshInventory, showMessage]);
+  }, [refreshInventory, showMessage]);
 
   const handleMovement = useCallback(async (
     name: string,
@@ -498,12 +514,14 @@ export default function AppWithSupabase() {
   }, [currentUser]);
 
   // Renderização condicional baseada na inicialização do banco
+  // SEMPRE renderizar algo para evitar tela em branco
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-amber-50 flex items-center justify-center">
         <div className="text-center">
           <Database className="w-16 h-16 text-orange-500 animate-pulse mx-auto mb-4" />
           <p className="text-gray-600">Carregando sistema...</p>
+          <p className="text-gray-400 text-sm mt-2">Aguarde...</p>
         </div>
       </div>
     );
@@ -512,9 +530,9 @@ export default function AppWithSupabase() {
   if (!isDatabaseInitialized) {
     return (
       <DatabaseInit
-        onComplete={() => {
+        onComplete={async () => {
           setIsDatabaseInitialized(true);
-          loadInitialData();
+          await loadInitialData();
         }}
       />
     );

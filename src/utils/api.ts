@@ -1,5 +1,5 @@
 import { API_URL, getHeaders } from './supabase/client';
-import { InventoryItem, Movement } from '../AppWithAuth';
+import { InventoryItem, Movement } from '../AppWithSupabase';
 
 export interface User {
   id: string;

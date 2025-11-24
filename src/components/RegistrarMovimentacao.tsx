@@ -3,7 +3,7 @@ import {
   InventoryItem,
   ProductWithVariations,
   User,
-} from "../App";
+} from "../AppWithSupabase";
 import {
   Card,
   CardContent,

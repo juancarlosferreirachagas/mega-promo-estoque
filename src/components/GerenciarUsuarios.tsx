@@ -4,7 +4,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Users, UserPlus, Trash2, Shield, Info, Edit, X, Check } from 'lucide-react';
-import { User } from '../App';
+import { User } from '../AppWithSupabase';
 import { Checkbox } from './ui/checkbox';
 
 interface GerenciarUsuariosProps {

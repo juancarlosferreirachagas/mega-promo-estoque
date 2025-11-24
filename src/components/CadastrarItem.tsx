@@ -217,7 +217,6 @@ export default function CadastrarItem({
     setSelectedSizes([]);
     setMultipleMode(false);
   }, [product, customProductName, isCustomProduct, size, customSize, isCustomSize, quantity, multipleMode, selectedSizes, onCadastrar]);
-  };
 
   return (
     <Card className="border-gray-200 shadow">
