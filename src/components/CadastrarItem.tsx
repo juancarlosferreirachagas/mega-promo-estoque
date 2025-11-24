@@ -175,8 +175,8 @@ export default function CadastrarItem({
       return;
     }
 
-    // Modo múltiplo - cadastrar vários tamanhos de uma vez
-    if (multipleMode && selectedSizes.length > 0) {
+    // Verificar se há seleções múltiplas (produto customizado com grid de checkboxes)
+    if (isCustomProduct && selectedSizes.length > 0) {
       let successCount = 0;
       selectedSizes.forEach((selectedSize) => {
         onCadastrar(finalProductName, selectedSize, quantity);
@@ -195,14 +195,33 @@ export default function CadastrarItem({
     }
 
     // Modo simples - cadastrar um tamanho
-    const finalSize = isCustomSize
-      ? customSize.trim()
-      : isCustomProduct
-        ? customSize.trim()
-        : size;
+    let finalSize: string = "";
 
-    if (!finalSize) {
-      alert("Por favor, selecione um tamanho.");
+    if (isCustomProduct) {
+      // Produto customizado
+      if (sizeType === "unique") {
+        // Tamanho único - usar customSize que já está setado como "ÚNICO"
+        finalSize = customSize.trim() || "ÚNICO";
+      } else if (selectedSizes.length === 1) {
+        // Um único tamanho selecionado no grid
+        finalSize = selectedSizes[0];
+      } else if (customSize.trim()) {
+        // Tamanho digitado manualmente
+        finalSize = customSize.trim();
+      }
+    } else {
+      // Produto normal (não customizado)
+      if (isCustomSize) {
+        // Tamanho customizado ("Outro tamanho")
+        finalSize = customSize.trim();
+      } else {
+        // Tamanho do dropdown
+        finalSize = size;
+      }
+    }
+
+    if (!finalSize || finalSize.trim() === "") {
+      alert("Por favor, selecione ou digite um tamanho.");
       return;
     }
 

@@ -7,6 +7,37 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [1.0.4] - 2025-11-24
+
+### 🐛 Corrigido
+- **CRÍTICO**: Corrigida validação de tamanho no cadastro de itens
+  - Resolvido problema onde sistema pedia tamanho mesmo após seleção
+  - Corrigida lógica de validação para produtos customizados com seleção múltipla
+  - Corrigida validação para tamanho único em produtos customizados
+  - Melhorada validação para tamanho customizado em produtos normais
+
+### 🎨 Melhorias de Interface
+- **EstoqueAtual.tsx**: Redesign completo dos cards de estoque
+  - Removidas todas as animações (motion.div) para melhor performance
+  - Cores corretas: Verde para estoque OK (≥10), Vermelho para estoque baixo (<10)
+  - Implementada edição inline de quantidade (clicar no número para editar)
+  - Badges de tamanho maiores e mais legíveis (`text-sm` com `px-3 py-2`)
+  - Tipografia melhorada: textos maiores e mais claros
+  - Botões sempre visíveis (não apenas no hover)
+  - Melhor espaçamento e hierarquia visual
+  - Labels descritivos "TAMANHO:" e "QUANTIDADE:" em maiúsculas
+  - Todos os textos em maiúsculas para consistência visual
+
+### ⚡ Performance
+- Removida dependência de `motion/react` do componente EstoqueAtual
+- Redução de re-renders desnecessários
+- Build otimizado e validado
+
+### 🧹 Limpeza de Código
+- Código de validação refatorado e simplificado
+- Melhor organização da lógica de edição inline
+- Removidos imports não utilizados
+
 ## [1.0.3] - 2025-11-24
 
 ### 🐛 Corrigido

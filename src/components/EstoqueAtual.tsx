@@ -1,5 +1,4 @@
 import { useState, useMemo, useCallback } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { InventoryItem } from '../AppWithSupabase';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { 
@@ -62,6 +61,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
     isOpen: false,
     item: null
   });
+  const [editingQuantity, setEditingQuantity] = useState<{ itemId: string; value: string } | null>(null);
 
   // Filtros dinâmicos - apenas produtos e tamanhos que estão realmente no estoque
   const availableProducts = useMemo(() => {
@@ -383,6 +383,32 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
     return success;
   }, [onEdit]);
 
+  const handleInlineEditStart = useCallback((item: InventoryItem) => {
+    setEditingQuantity({ itemId: item.id, value: item.quantity.toString() });
+  }, []);
+
+  const handleInlineEditSave = useCallback(async (itemId: string) => {
+    if (!editingQuantity || !onEdit) return;
+    
+    const newQuantity = parseInt(editingQuantity.value);
+    if (isNaN(newQuantity) || newQuantity < 0) {
+      alert('Por favor, insira uma quantidade válida (número maior ou igual a zero).');
+      setEditingQuantity(null);
+      return;
+    }
+
+    const success = await onEdit(itemId, newQuantity);
+    if (success) {
+      setEditingQuantity(null);
+    } else {
+      alert('Erro ao atualizar a quantidade. Tente novamente.');
+    }
+  }, [editingQuantity, onEdit]);
+
+  const handleInlineEditCancel = useCallback(() => {
+    setEditingQuantity(null);
+  }, []);
+
   return (
     <>
       <Card className="border-orange-200 shadow-lg glass-card">
@@ -404,11 +430,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
         </CardHeader>
         <CardContent className="pt-6 px-4 sm:px-6">
           {/* FILTROS COMPACTOS E MODERNOS */}
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-4 bg-white rounded-xl border-2 border-orange-200 shadow-md overflow-hidden"
-          >
+          <div className="mb-4 bg-white rounded-xl border-2 border-orange-200 shadow-md overflow-hidden">
             {/* Header Compacto */}
             <div className="bg-gradient-to-r from-orange-500 to-amber-600 px-4 py-2">
               <div className="flex items-center justify-between flex-wrap gap-2">
@@ -578,12 +600,12 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                     {inventory.filter(i => i.quantity < 10).length}
                   </p>
                 </div>
-                <div className="p-2.5 rounded-lg bg-orange-50 border border-orange-200">
+                <div className="p-2.5 rounded-lg bg-green-50 border border-green-200">
                   <div className="flex items-center gap-1.5 mb-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-orange-600" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
                     <span className="text-xs font-semibold text-gray-700">Normal</span>
                   </div>
-                  <p className="text-lg font-black text-orange-700">
+                  <p className="text-lg font-black text-green-700">
                     {inventory.filter(i => i.quantity >= 10).length}
                   </p>
                 </div>
@@ -591,19 +613,15 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
 
               {/* Indicador de Filtro Ativo */}
               {sortedInventory.length !== inventory.length && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex items-center gap-2 p-2 bg-orange-50 border border-orange-200 rounded-lg"
-                >
+                <div className="flex items-center gap-2 p-2 bg-orange-50 border border-orange-200 rounded-lg">
                   <Filter className="w-3.5 h-3.5 text-orange-600" />
                   <span className="text-xs font-semibold text-orange-800">
                     {sortedInventory.length} de {inventory.length} produtos
                   </span>
-                </motion.div>
+                </div>
               )}
             </div>
-          </motion.div>
+          </div>
 
           {/* Lista de Itens */}
           <div className="overflow-y-auto max-h-[calc(100vh-450px)] pr-2 sm:pr-4 custom-scrollbar">
@@ -621,90 +639,59 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 pb-6">
-              {sortedInventory.map((item, index) => {
+              {sortedInventory.map((item) => {
                 const isLowStock = item.quantity < 10;
                 const ProductIcon = getProductIcon(item.name);
                 
                 return (
-                  <motion.div
+                  <div
                     key={item.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ 
-                      duration: 0.2,
-                      delay: index * 0.01,
-                      ease: "easeOut"
-                    }}
-                    whileHover={{ scale: 1.05, y: -2 }}
-                    className={`group relative aspect-square rounded-lg overflow-hidden bg-white border-2 transition-all duration-200 shadow-sm hover:shadow-lg ${
+                    className={`group relative aspect-square rounded-xl overflow-hidden bg-white border-2 shadow-md hover:shadow-xl ${
                       isLowStock 
-                        ? 'border-red-400 hover:border-red-600' 
-                        : 'border-orange-300 hover:border-orange-500'
+                        ? 'border-red-400 hover:border-red-500' 
+                        : 'border-green-400 hover:border-green-500'
                     }`}
                   >
-                    {/* Header Compacto - Cores Mega Promo */}
-                    <div className={`relative px-2.5 py-1.5 ${
+                    {/* Header - Verde para OK, Vermelho para Baixo */}
+                    <div className={`relative px-3 py-2 ${
                       isLowStock 
                         ? 'bg-gradient-to-r from-red-500 to-red-600' 
-                        : 'bg-gradient-to-r from-orange-500 to-amber-600'
+                        : 'bg-gradient-to-r from-green-500 to-green-600'
                     }`}>
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <ProductIcon className="w-3.5 h-3.5 text-white" />
-                          <span className="text-white font-bold uppercase text-[9px] tracking-wide leading-tight">
-                            {isLowStock ? 'Baixo' : 'OK'}
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 bg-white/20 rounded-md backdrop-blur-sm">
+                            <ProductIcon className="w-4 h-4 text-white" />
+                          </div>
+                          <span className="text-white font-bold uppercase text-[10px] tracking-wide">
+                            {isLowStock ? 'BAIXO' : 'OK'}
                           </span>
                         </div>
-                        {/* Botões de Ação - Compactos */}
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {onEdit && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditClick(item);
-                              }}
-                              className="p-1 rounded bg-white/20 hover:bg-white/30 text-white transition-all"
-                              title="Editar"
-                            >
-                              <Edit className="w-3 h-3" />
-                            </button>
-                          )}
-                          {onDelete && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteClick(item);
-                              }}
-                              className="p-1 rounded bg-white/20 hover:bg-white/30 text-white transition-all"
-                              title="Excluir"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          )}
-                        </div>
+                        {/* Botão de Excluir - Sempre visível */}
+                        {onDelete && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteClick(item);
+                            }}
+                            className="p-1.5 rounded-md bg-white/20 hover:bg-white/30 text-white transition-colors shadow-sm hover:shadow-md"
+                            title="Excluir produto"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
 
-                    {/* Corpo Compacto */}
-                    <div className="p-2.5 h-full flex flex-col justify-between">
-                      {/* Nome e Tamanho */}
-                      <div className="flex-1">
-                        <div className="flex items-start gap-1.5 mb-1.5">
-                          <div className={`p-1 rounded ${
-                            isLowStock 
-                              ? 'bg-red-50' 
-                              : 'bg-orange-50'
-                          }`}>
-                            <ProductIcon className={`w-3.5 h-3.5 ${
-                              isLowStock ? 'text-red-600' : 'text-orange-600'
-                            }`} />
-                          </div>
-                          <h3 className="font-bold text-gray-900 text-[11px] leading-tight line-clamp-2 flex-1">
-                            {item.name}
-                          </h3>
-                        </div>
+                    {/* Corpo do Card */}
+                    <div className="p-3 h-full flex flex-col justify-between">
+                      {/* Nome do Produto */}
+                      <div className="flex-1 mb-3">
+                        <h3 className="font-bold text-gray-900 text-sm leading-snug line-clamp-2 mb-3">
+                          {item.name}
+                        </h3>
                         
-                        {/* Tamanho Badge */}
+                        {/* Tamanho Badge - Maior */}
                         <div className="mb-2">
                           {(() => {
                             const sizeColor = getSizeColor(item.size);
@@ -746,7 +733,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                               
                               return (
                                 <span 
-                                  className="inline-block px-1.5 py-0.5 text-white font-bold rounded text-[10px] border"
+                                  className="inline-block px-3 py-1.5 text-white font-bold rounded-lg text-xs border-2 shadow-md"
                                   style={{
                                     background: uniqueColor.bg,
                                     borderColor: uniqueColor.border
@@ -758,7 +745,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                             }
                             
                             return (
-                              <span className={`inline-block px-1.5 py-0.5 ${sizeColor.bg} ${sizeColor.text} font-bold rounded text-[10px] border ${sizeColor.border}`}>
+                              <span className={`inline-block px-3 py-1.5 ${sizeColor.bg} ${sizeColor.text} font-bold rounded-lg text-xs border-2 ${sizeColor.border} shadow-md`}>
                                 {item.size}
                               </span>
                             );
@@ -766,43 +753,102 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
                         </div>
                       </div>
 
-                      {/* Quantidade - Destaque Compacto */}
+                      {/* Quantidade - Edição Inline */}
                       <div className="mt-auto">
-                        <div className={`rounded-lg p-2 ${
+                        <div className={`rounded-lg p-3 border-2 ${
                           isLowStock 
-                            ? 'bg-red-50 border border-red-200' 
-                            : 'bg-orange-50 border border-orange-200'
+                            ? 'bg-red-50 border-red-300' 
+                            : 'bg-green-50 border-green-300'
                         }`}>
-                          <div className="flex items-baseline justify-between gap-1">
-                            <p className={`text-2xl sm:text-3xl font-black leading-none ${
-                              isLowStock ? 'text-red-700' : 'text-orange-700'
-                            }`}>
-                              {item.quantity}
-                            </p>
-                            <div className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold ${
-                              isLowStock 
-                                ? 'bg-red-500 text-white' 
-                                : 'bg-orange-500 text-white'
-                            }`}>
-                              {isLowStock ? (
-                                <AlertCircle className="w-2.5 h-2.5" />
-                              ) : (
-                                <CheckCircle2 className="w-2.5 h-2.5" />
-                              )}
-                            </div>
+                          <div className="flex items-center justify-between gap-2">
+                            {/* Quantidade - Editável */}
+                            {editingQuantity?.itemId === item.id ? (
+                              <div className="flex items-center gap-2 flex-1">
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  value={editingQuantity.value}
+                                  onChange={(e) => setEditingQuantity({ ...editingQuantity, value: e.target.value })}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      handleInlineEditSave(item.id);
+                                    } else if (e.key === 'Escape') {
+                                      handleInlineEditCancel();
+                                    }
+                                  }}
+                                  onBlur={() => handleInlineEditSave(item.id)}
+                                  autoFocus
+                                  className={`flex-1 h-10 text-2xl font-black text-center border-2 ${
+                                    isLowStock 
+                                      ? 'border-red-400 focus:border-red-500' 
+                                      : 'border-green-400 focus:border-green-500'
+                                  }`}
+                                />
+                                <button
+                                  onClick={() => handleInlineEditSave(item.id)}
+                                  className="p-1.5 rounded-md bg-green-500 hover:bg-green-600 text-white transition-colors"
+                                  title="Salvar"
+                                >
+                                  <CheckCircle2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={handleInlineEditCancel}
+                                  className="p-1.5 rounded-md bg-gray-400 hover:bg-gray-500 text-white transition-colors"
+                                  title="Cancelar"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                <div 
+                                  className="flex items-center gap-2 flex-1 cursor-pointer group"
+                                  onClick={() => onEdit && handleInlineEditStart(item)}
+                                  title="Clique para editar quantidade"
+                                >
+                                  <p className={`text-4xl font-black leading-none ${
+                                    isLowStock ? 'text-red-700' : 'text-green-700'
+                                  } group-hover:opacity-80 transition-opacity`}>
+                                    {item.quantity}
+                                  </p>
+                                  {onEdit && (
+                                    <Edit className={`w-4 h-4 opacity-0 group-hover:opacity-60 transition-opacity ${
+                                      isLowStock ? 'text-red-600' : 'text-green-600'
+                                    }`} />
+                                  )}
+                                </div>
+                                <div className={`flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-bold ${
+                                  isLowStock 
+                                    ? 'bg-red-500 text-white' 
+                                    : 'bg-green-500 text-white'
+                                }`}>
+                                  {isLowStock ? (
+                                    <>
+                                      <AlertCircle className="w-3.5 h-3.5" />
+                                      <span>BAIXO</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <CheckCircle2 className="w-3.5 h-3.5" />
+                                      <span>OK</span>
+                                    </>
+                                  )}
+                                </div>
+                              </>
+                            )}
                           </div>
                         </div>
                         
-                        {/* Data Compacta */}
-                        <p className="text-[9px] text-gray-500 mt-1.5 text-center">
-                          {new Date(item.lastUpdated).toLocaleDateString('pt-BR', {
+                        {/* Data */}
+                        <p className="text-[10px] text-gray-500 mt-2.5 text-center font-medium">
+                          Atualizado: {new Date(item.lastUpdated).toLocaleDateString('pt-BR', {
                             day: '2-digit',
                             month: 'short'
                           })}
                         </p>
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
                 );
               })}
               </div>
