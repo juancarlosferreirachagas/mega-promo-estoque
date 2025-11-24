@@ -41,16 +41,13 @@ import {
 import ExcelJS from 'exceljs';
 import EditItemModal from './EditItemModal';
 
-import { ProductWithVariations } from '../AppWithSupabase';
-
 interface EstoqueAtualProps {
   inventory: InventoryItem[];
-  allProducts?: ProductWithVariations[];
   onDelete?: (itemId: string, itemName: string) => Promise<boolean>;
   onEdit?: (itemId: string, quantity: number) => Promise<boolean>;
 }
 
-export default function EstoqueAtual({ inventory, allProducts = [], onDelete, onEdit }: EstoqueAtualProps) {
+export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtualProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'low' | 'ok'>('all');
   const [productFilter, setProductFilter] = useState<string>('all');
@@ -65,34 +62,20 @@ export default function EstoqueAtual({ inventory, allProducts = [], onDelete, on
     item: null
   });
 
-  // Filtros dinâmicos - inclui produtos e tamanhos cadastrados, mesmo que não estejam no estoque ainda
+  // Filtros dinâmicos - apenas produtos e tamanhos que estão realmente no estoque
   const availableProducts = useMemo(() => {
-    // Produtos que estão no estoque
-    const productsInInventory = new Set(inventory.map(item => item.name));
+    // Apenas produtos que estão no estoque
+    const productsInInventory = new Set(inventory.map(item => item.name.toUpperCase()));
     
-    // Produtos cadastrados (mesmo que não tenham itens no estoque)
-    const productsFromCatalog = new Set(allProducts.map(product => product.name));
-    
-    // Combinar ambos
-    const allAvailableProducts = new Set([...productsInInventory, ...productsFromCatalog]);
-    
-    return Array.from(allAvailableProducts).sort();
-  }, [inventory, allProducts]);
+    return Array.from(productsInInventory).sort();
+  }, [inventory]);
 
   const availableSizes = useMemo(() => {
-    // Tamanhos que estão no estoque
-    const sizesInInventory = new Set(inventory.map(item => item.size));
+    // Apenas tamanhos que estão no estoque
+    const sizesInInventory = new Set(inventory.map(item => item.size.toUpperCase()));
     
-    // Tamanhos das variações dos produtos cadastrados
-    const sizesFromProducts = new Set(
-      allProducts.flatMap(product => product.variations || [])
-    );
-    
-    // Combinar ambos
-    const allAvailableSizes = new Set([...sizesInInventory, ...sizesFromProducts]);
-    
-    return Array.from(allAvailableSizes).sort();
-  }, [inventory, allProducts]);
+    return Array.from(sizesInInventory).sort();
+  }, [inventory]);
 
   const getSizeColor = (size: string): { bg: string; text: string; border: string } => {
     // Padrão ÚNICO cinza para todos os tamanhos
@@ -337,11 +320,11 @@ export default function EstoqueAtual({ inventory, allProducts = [], onDelete, on
                            (statusFilter === 'low' && isLowStock) ||
                            (statusFilter === 'ok' && !isLowStock);
       
-      // Filtro de produto
-      const matchesProduct = productFilter === 'all' || item.name === productFilter;
+      // Filtro de produto (comparação case-insensitive)
+      const matchesProduct = productFilter === 'all' || item.name.toUpperCase() === productFilter;
       
-      // Filtro de tamanho
-      const matchesSize = sizeFilter === 'all' || item.size === sizeFilter;
+      // Filtro de tamanho (comparação case-insensitive)
+      const matchesSize = sizeFilter === 'all' || item.size.toUpperCase() === sizeFilter;
       
       return matchesSearch && matchesStatus && matchesProduct && matchesSize;
     });

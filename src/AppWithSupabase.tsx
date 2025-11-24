@@ -635,7 +635,6 @@ export default function AppWithSupabase() {
           <TabsContent value="estoque">
             <EstoqueAtual 
               inventory={inventory}
-              allProducts={allProducts}
               onEdit={currentUser ? handleEditItem : undefined}
               onDelete={currentUser?.isMaster ? handleDeleteItem : undefined}
             />
