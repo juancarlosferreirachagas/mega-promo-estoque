@@ -251,7 +251,7 @@ export default function CadastrarItem({
               <SelectTrigger className="border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-500">
                 <SelectValue placeholder="Selecione o produto" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-[250px] select-scrollbar">
                 {allProducts?.map((product) => (
                   <SelectItem
                     key={product.name}
@@ -392,7 +392,7 @@ export default function CadastrarItem({
                   <SelectTrigger className="border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-500">
                     <SelectValue placeholder="Selecione o tamanho" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-[250px] select-scrollbar">
                     {availableVariations.length === 0 ? (
                       <SelectItem value="UNIQUE" disabled>
                         Selecione um produto primeiro

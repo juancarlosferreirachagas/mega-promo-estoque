@@ -3954,3 +3954,58 @@
     transform: translate3d(var(--tw-exit-translate-x, 0), var(--tw-exit-translate-y, 0), 0) scale3d(var(--tw-exit-scale, 1), var(--tw-exit-scale, 1), var(--tw-exit-scale, 1)) rotate(var(--tw-exit-rotate, 0));
   }
 }
+
+/* Custom Scrollbar para lista de itens do estoque */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #fdba74 #f3f4f6;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #fdba74;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #fb923c;
+}
+
+/* Custom Scrollbar para listas suspensas (Select/Dropdown) */
+.select-scrollbar {
+  scrollbar-width: thin !important;
+  scrollbar-color: #fdba74 #f3f4f6 !important;
+}
+
+.select-scrollbar::-webkit-scrollbar {
+  width: 8px !important;
+  height: 8px !important;
+}
+
+.select-scrollbar::-webkit-scrollbar-track {
+  background: #f3f4f6 !important;
+  border-radius: 4px !important;
+}
+
+.select-scrollbar::-webkit-scrollbar-thumb {
+  background: #fdba74 !important;
+  border-radius: 4px !important;
+}
+
+.select-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #fb923c !important;
+}
+
+/* Garantir que o Viewport do Select tenha scroll */
+[data-slot="select-viewport"] {
+  max-height: 280px !important;
+  overflow-y: auto !important;
+}

@@ -337,7 +337,7 @@ export default function RegistrarMovimentacao({
                 >
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl">
+                <SelectContent className="rounded-xl max-h-[250px] select-scrollbar">
                   {combinedProductNames.length === 0 ? (
                     <div className="p-3 text-center text-gray-400 text-xs">
                       Nenhum produto
@@ -384,7 +384,7 @@ export default function RegistrarMovimentacao({
                     }
                   />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl">
+                <SelectContent className="rounded-xl max-h-[250px] select-scrollbar">
                   {availableSizes.map((itemSize) => (
                     <SelectItem
                       key={itemSize}
@@ -450,7 +450,7 @@ export default function RegistrarMovimentacao({
                 <SelectTrigger className="h-10 border-2 border-gray-200 hover:border-orange-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 bg-white rounded-xl shadow-sm transition-all">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl">
+                <SelectContent className="rounded-xl max-h-[250px] select-scrollbar">
                   <SelectItem
                     value="entrada"
                     className="rounded-lg"
@@ -737,7 +737,7 @@ export default function RegistrarMovimentacao({
                       }
                     />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl">
+                  <SelectContent className="rounded-xl max-h-[250px] select-scrollbar">
                     {users.map((user) => (
                       <SelectItem
                         key={user.id}

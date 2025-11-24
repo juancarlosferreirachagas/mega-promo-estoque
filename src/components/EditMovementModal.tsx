@@ -197,7 +197,7 @@ export default function EditMovementModal({
                   <SelectTrigger className="border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-500">
                     <SelectValue placeholder="Selecione o produto" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-[250px] select-scrollbar">
                     {allProducts.map((product) => (
                       <SelectItem key={product.name} value={product.name}>
                         {product.name}
@@ -229,7 +229,7 @@ export default function EditMovementModal({
                       }
                     />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-[250px] select-scrollbar">
                     {availableSizes.length > 0 ? (
                       availableSizes.map((size) => (
                         <SelectItem key={size} value={size}>

@@ -403,6 +403,29 @@ export default function AppWithSupabase() {
     }
   };
 
+  const handleEditItem = async (itemId: string, quantity: number) => {
+    try {
+      const updatedItem = await api.updateInventoryItem(itemId, quantity);
+
+      if (updatedItem) {
+        await refreshInventory();
+        
+        showMessage(
+          'Item Atualizado', 
+          `A quantidade do item foi atualizada para ${quantity} unidade(s).`
+        );
+        return true;
+      } else {
+        showMessage('Erro', 'Não foi possível atualizar o item.');
+        return false;
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar item:', error);
+      showMessage('Erro', 'Erro ao atualizar item no banco de dados.');
+      return false;
+    }
+  };
+
   const handleDeleteItem = async (itemId: string, itemName: string) => {
     try {
       const result = await api.deleteInventoryItem(itemId);
@@ -611,7 +634,9 @@ export default function AppWithSupabase() {
           {/* Estoque Atual */}
           <TabsContent value="estoque">
             <EstoqueAtual 
-              inventory={inventory} 
+              inventory={inventory}
+              allProducts={allProducts}
+              onEdit={currentUser ? handleEditItem : undefined}
               onDelete={currentUser?.isMaster ? handleDeleteItem : undefined}
             />
           </TabsContent>
