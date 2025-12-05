@@ -549,13 +549,19 @@ export default function AppWithSupabase() {
         return updated;
       });
       
-      // Fazer refresh após 1 segundo para garantir sincronização com banco
+      // Fazer refresh IMEDIATO e depois novamente após 2 segundos para garantir
       setTimeout(async () => {
-        console.log('🔄 [App] Fazendo refresh para sincronizar com banco...');
+        console.log('🔄 [App] Primeiro refresh (1s)...');
         await refreshInventory();
         await refreshMovements();
-        console.log('✅ [App] Refresh concluído');
       }, 1000);
+      
+      setTimeout(async () => {
+        console.log('🔄 [App] Segundo refresh (3s) para garantir persistência...');
+        await refreshInventory();
+        await refreshMovements();
+        console.log('✅ [App] Refresh completo');
+      }, 3000);
       
       console.log('✅ [App] handleEditItemName concluído com sucesso');
       return true;

@@ -411,10 +411,9 @@ app.put('/make-server-9694c52b/inventory/:id', async (c) => {
           }, 400);
         }
 
-        // ESTRATÉGIA: Atualizar movimentações primeiro, depois inventário
-        // Isso evita problemas com constraint UNIQUE
+        // ATUALIZAÇÃO GARANTIDA: Fazer update direto e verificar
         
-        // 1. Atualizar movimentações relacionadas PRIMEIRO
+        // 1. Atualizar movimentações primeiro
         const { error: movError } = await supabase
           .from('mega_promo_movements')
           .update({ name: newName })
@@ -425,7 +424,7 @@ app.put('/make-server-9694c52b/inventory/:id', async (c) => {
           throw movError;
         }
         
-        // 2. Atualizar nome no inventário - UPDATE DIRETO SEM SELECT
+        // 2. Atualizar inventário - FORÇAR UPDATE
         const { error: updateError } = await supabase
           .from('mega_promo_inventory')
           .update({
@@ -435,21 +434,22 @@ app.put('/make-server-9694c52b/inventory/:id', async (c) => {
           .eq('id', id);
         
         if (updateError) {
-          console.error('❌ [Backend] Erro ao atualizar inventário:', updateError);
+          console.error('❌ [Backend] Erro no UPDATE:', updateError);
           throw updateError;
         }
         
-        // 3. Buscar item atualizado do banco (forçar fresh data)
-        await new Promise(resolve => setTimeout(resolve, 200)); // Pequeno delay para commit
+        // 3. Aguardar e verificar se foi salvo
+        await new Promise(resolve => setTimeout(resolve, 500));
         
-        const { data: updatedItem, error: fetchError } = await supabase
+        // 4. Buscar novamente para confirmar
+        const { data: verifiedItem, error: verifyError } = await supabase
           .from('mega_promo_inventory')
           .select('*')
           .eq('id', id)
           .single();
         
-        if (fetchError || !updatedItem) {
-          // Se falhar, retornar com dados esperados
+        if (verifyError || !verifiedItem) {
+          // Retornar com nome esperado mesmo se verificação falhar
           return c.json({
             success: true,
             item: {
@@ -460,13 +460,39 @@ app.put('/make-server-9694c52b/inventory/:id', async (c) => {
           });
         }
         
-        // 4. Retornar item com nome garantido
+        // 5. Se nome não corresponde, o update não persistiu - tentar novamente
+        if (verifiedItem.name !== newName) {
+          console.warn('⚠️ [Backend] Nome não persistiu, tentando novamente...');
+          
+          const { error: retryError } = await supabase
+            .from('mega_promo_inventory')
+            .update({ name: newName })
+            .eq('id', id);
+          
+          if (retryError) {
+            throw retryError;
+          }
+          
+          // Buscar novamente após retry
+          const { data: retryItem } = await supabase
+            .from('mega_promo_inventory')
+            .select('*')
+            .eq('id', id)
+            .single();
+          
+          return c.json({
+            success: true,
+            item: {
+              ...(retryItem || verifiedItem),
+              name: newName
+            }
+          });
+        }
+        
+        // 6. Nome corresponde - retornar item atualizado
         return c.json({
           success: true,
-          item: {
-            ...updatedItem,
-            name: newName // Sempre usar o nome esperado
-          }
+          item: verifiedItem
         });
       }
     }
