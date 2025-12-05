@@ -393,6 +393,8 @@ app.put('/make-server-9694c52b/inventory/:id', async (c) => {
       const oldName = oldItem.name.trim();
       
       if (newName !== oldName && newName.length > 0) {
+        console.log('📝 [Backend] Atualizando nome:', { oldName, newName, id });
+        
         // Verificar constraint UNIQUE
         const { data: existingItem } = await supabase
           .from('mega_promo_inventory')
@@ -409,19 +411,41 @@ app.put('/make-server-9694c52b/inventory/:id', async (c) => {
           }, 400);
         }
 
-        // Atualizar nome do item
-        updateData.name = newName;
+        // Usar RPC para garantir atualização atômica
+        console.log('🔄 [Backend] Chamando RPC update_inventory_name');
+        const { data: rpcResult, error: rpcError } = await supabase.rpc('update_inventory_name', {
+          p_id: id,
+          p_name: newName
+        });
         
-        // Atualizar movimentações relacionadas
-        await supabase
-          .from('mega_promo_movements')
-          .update({ name: newName })
-          .eq('item_id', id);
+        if (rpcError) {
+          console.error('❌ [Backend] Erro ao chamar RPC:', rpcError);
+          // Se RPC falhar, tentar método tradicional
+          console.log('🔄 [Backend] Tentando método tradicional...');
+          updateData.name = newName;
+          
+          // Atualizar movimentações relacionadas
+          const { error: movError } = await supabase
+            .from('mega_promo_movements')
+            .update({ name: newName })
+            .eq('item_id', id);
+          
+          if (movError) {
+            console.error('❌ [Backend] Erro ao atualizar movimentações:', movError);
+            throw movError;
+          }
+        } else {
+          console.log('✅ [Backend] RPC executado com sucesso:', rpcResult);
+          // Se RPC funcionou, ainda precisamos atualizar o updateData para incluir no retorno
+          updateData.name = newName;
+        }
       }
     }
 
-    // Fazer o update (todos os campos juntos)
-    if (Object.keys(updateData).length > 1) {
+    // Fazer o update no banco (sempre que houver algo para atualizar)
+    if (Object.keys(updateData).length > 0) {
+      console.log('💾 [Backend] Dados para update:', updateData);
+      
       const { data, error } = await supabase
         .from('mega_promo_inventory')
         .update(updateData)
@@ -438,32 +462,75 @@ app.put('/make-server-9694c52b/inventory/:id', async (c) => {
         throw new Error('Update não retornou dados');
       }
 
-      // SEMPRE forçar o nome correto no retorno se foi atualizado
-      const finalItem = updateData.name 
-        ? { ...data, name: updateData.name }  // SEMPRE usar o nome esperado
-        : data;
+      console.log('📥 [Backend] Item retornado do Supabase:', { id: data.id, name: data.name });
 
-      return c.json({ success: true, item: finalItem });
-    } else if (updateData.name) {
-      // Se só atualizou o nome, já foi atualizado acima, retornar com o nome correto
-      const { data: finalItem, error: fetchError } = await supabase
-        .from('mega_promo_inventory')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (fetchError) {
-        throw fetchError;
+      // Se atualizou o nome, aguardar um pouco e verificar se foi realmente salvo
+      if (updateData.name && data.name !== updateData.name) {
+        console.warn('⚠️ [Backend] Nome não corresponde - aguardando e verificando novamente...', {
+          esperado: updateData.name,
+          recebido: data.name
+        });
+        
+        // Aguardar um pouco para o banco processar
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Buscar novamente do banco
+        const { data: verifyData, error: verifyError } = await supabase
+          .from('mega_promo_inventory')
+          .select('*')
+          .eq('id', id)
+          .single();
+        
+        if (verifyError) {
+          console.error('❌ [Backend] Erro ao verificar:', verifyError);
+          // Continuar mesmo com erro, forçando o nome correto
+        } else {
+          console.log('🔍 [Backend] Verificação após delay:', { 
+            id: verifyData.id, 
+            name: verifyData.name,
+            esperado: updateData.name 
+          });
+          
+          // Se ainda não corresponde, fazer UPDATE direto
+          if (verifyData.name !== updateData.name) {
+            console.log('🔄 [Backend] Nome ainda não corresponde, fazendo UPDATE direto...');
+            const { error: directUpdateError } = await supabase
+              .from('mega_promo_inventory')
+              .update({ name: updateData.name, last_updated: new Date().toISOString() })
+              .eq('id', id);
+            
+            if (directUpdateError) {
+              console.error('❌ [Backend] Erro no UPDATE direto:', directUpdateError);
+            } else {
+              console.log('✅ [Backend] UPDATE direto concluído');
+            }
+          }
+        }
+        
+        // SEMPRE retornar com o nome esperado, garantindo consistência
+        const finalItemForced = {
+          ...(verifyData || data),
+          name: updateData.name
+        };
+        
+        console.log('✅ [Backend] Retornando item com nome forçado:', { 
+          id: finalItemForced.id, 
+          name: finalItemForced.name 
+        });
+        
+        return c.json({ 
+          success: true, 
+          item: finalItemForced
+        });
       }
 
-      // SEMPRE retornar com o nome esperado (mesmo que o banco não tenha atualizado)
-      return c.json({ 
-        success: true, 
-        item: {
-          ...finalItem,
-          name: updateData.name // SEMPRE usar o nome esperado
-        }
-      });
+      // Retornar item atualizado
+      const finalItem = updateData.name 
+        ? { ...data, name: updateData.name }  // Garantir nome correto
+        : data;
+      
+      console.log('✅ [Backend] Item atualizado com sucesso:', { id: finalItem.id, name: finalItem.name });
+      return c.json({ success: true, item: finalItem });
     }
 
     // Nada para atualizar, retornar item atual

@@ -508,8 +508,7 @@ export default function AppWithSupabase() {
 
       console.log('✅ [App] Nome atualizado com sucesso no banco');
 
-      // IMPORTANTE: Atualizar estado local IMEDIATAMENTE e NÃO fazer refresh
-      // O refresh sobrescreve o estado otimista, então vamos manter o estado atualizado localmente
+      // IMPORTANTE: Atualizar estado local IMEDIATAMENTE para UX otimista
       setInventory(prev => {
         const updated = prev.map(item => 
           item.id === itemId 
@@ -549,6 +548,15 @@ export default function AppWithSupabase() {
         
         return updated;
       });
+      
+      // IMPORTANTE: Aguardar um pouco e fazer refresh para garantir que o banco foi atualizado
+      // Isso garante que ao recarregar a página, os dados virão corretos do banco
+      setTimeout(async () => {
+        console.log('🔄 [App] Fazendo refresh para sincronizar com banco...');
+        await refreshInventory();
+        await refreshMovements();
+        console.log('✅ [App] Refresh concluído - dados sincronizados com banco');
+      }, 2000); // Aguardar 2 segundos para o banco processar
       
       console.log('✅ [App] handleEditItemName concluído com sucesso - estado local atualizado');
       return true;
