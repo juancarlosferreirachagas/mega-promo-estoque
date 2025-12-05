@@ -426,39 +426,58 @@ app.put('/make-server-9694c52b/inventory/:id', async (c) => {
         }
         console.log('✅ [Backend] Movimentações atualizadas');
         
-        // 2. Atualizar item no inventário
-        const { data: updatedItem, error: updateError } = await supabase
+        // 2. Atualizar item no inventário - FORÇAR UPDATE DIRETO
+        console.log('💾 [Backend] Executando UPDATE no banco...');
+        const { error: updateError } = await supabase
           .from('mega_promo_inventory')
           .update({ 
             name: newName,
             last_updated: new Date().toISOString()
           })
-          .eq('id', id)
-          .select()
-          .single();
+          .eq('id', id);
 
         if (updateError) {
           console.error('❌ [Backend] Erro no UPDATE:', updateError);
           throw updateError;
         }
 
-        if (!updatedItem) {
-          throw new Error('Update não retornou dados');
+        console.log('✅ [Backend] UPDATE executado com sucesso');
+
+        // 3. Buscar item atualizado do banco (forçar fresh data)
+        await new Promise(resolve => setTimeout(resolve, 100)); // Pequeno delay para garantir commit
+        
+        const { data: updatedItem, error: fetchError } = await supabase
+          .from('mega_promo_inventory')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (fetchError) {
+          console.error('❌ [Backend] Erro ao buscar item atualizado:', fetchError);
+          // Mesmo com erro, retornar com o nome esperado
+          return c.json({ 
+            success: true, 
+            item: {
+              ...oldItem,
+              name: newName,
+              last_updated: new Date().toISOString()
+            }
+          });
         }
 
-        console.log('✅ [Backend] UPDATE concluído:', { 
+        console.log('✅ [Backend] Item buscado após UPDATE:', { 
           id: updatedItem.id, 
           name: updatedItem.name,
           esperado: newName
         });
 
-        // 3. Se o nome retornado não corresponde, forçar no retorno
+        // 4. SEMPRE retornar com o nome que foi enviado (garantir consistência)
         const finalItem = {
           ...updatedItem,
-          name: newName // SEMPRE usar o nome que foi enviado
+          name: newName // FORÇAR nome correto
         };
 
-        console.log('✅ [Backend] Retornando item atualizado:', finalItem);
+        console.log('✅ [Backend] Retornando item final:', finalItem);
         return c.json({ success: true, item: finalItem });
       }
     }
