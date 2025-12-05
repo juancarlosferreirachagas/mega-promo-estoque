@@ -549,14 +549,9 @@ export default function AppWithSupabase() {
         return updated;
       });
       
-      // IMPORTANTE: Aguardar um pouco e fazer refresh para garantir que o banco foi atualizado
-      // Isso garante que ao recarregar a página, os dados virão corretos do banco
-      setTimeout(async () => {
-        console.log('🔄 [App] Fazendo refresh para sincronizar com banco...');
-        await refreshInventory();
-        await refreshMovements();
-        console.log('✅ [App] Refresh concluído - dados sincronizados com banco');
-      }, 2000); // Aguardar 2 segundos para o banco processar
+      // NÃO fazer refresh automático - o estado já foi atualizado otimisticamente
+      // O refresh só acontece quando o usuário recarregar a página manualmente
+      // Isso garante que a mudança seja instantânea na UI
       
       console.log('✅ [App] handleEditItemName concluído com sucesso - estado local atualizado');
       return true;
