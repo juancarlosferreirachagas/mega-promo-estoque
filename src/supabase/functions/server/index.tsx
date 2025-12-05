@@ -411,9 +411,7 @@ app.put('/make-server-9694c52b/inventory/:id', async (c) => {
           }, 400);
         }
 
-        // SOLUÇÃO DEFINITIVA: Atualizar tudo de uma vez usando transação implícita
-        
-        // 1. Atualizar movimentações primeiro
+        // Atualizar movimentações relacionadas PRIMEIRO
         const { error: movError } = await supabase
           .from('mega_promo_movements')
           .update({ name: newName })
@@ -424,59 +422,8 @@ app.put('/make-server-9694c52b/inventory/:id', async (c) => {
           throw movError;
         }
         
-        // 2. Atualizar inventário - UPDATE DIRETO SEM SELECT (mais rápido)
-        const { error: invError } = await supabase
-          .from('mega_promo_inventory')
-          .update({
-            name: newName,
-            last_updated: new Date().toISOString()
-          })
-          .eq('id', id);
-        
-        if (invError) {
-          console.error('❌ [Backend] Erro ao atualizar inventário:', invError);
-          throw invError;
-        }
-        
-        // 3. Buscar item atualizado após delay para garantir commit
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        const { data: updatedItem, error: fetchError } = await supabase
-          .from('mega_promo_inventory')
-          .select('*')
-          .eq('id', id)
-          .single();
-        
-        if (fetchError || !updatedItem) {
-          // Se falhar, retornar com dados esperados
-          return c.json({
-            success: true,
-            item: {
-              ...oldItem,
-              name: newName,
-              last_updated: new Date().toISOString()
-            }
-          });
-        }
-        
-        // 4. Verificar se nome foi realmente atualizado
-        if (updatedItem.name !== newName) {
-          console.warn('⚠️ [Backend] Nome não corresponde, forçando no retorno');
-          // Forçar nome correto no retorno
-          return c.json({
-            success: true,
-            item: {
-              ...updatedItem,
-              name: newName
-            }
-          });
-        }
-        
-        // 5. Nome corresponde - retornar item atualizado
-        return c.json({
-          success: true,
-          item: updatedItem
-        });
+        // Atualizar nome no inventário
+        updateData.name = newName;
       }
     }
 
@@ -500,12 +447,84 @@ app.put('/make-server-9694c52b/inventory/:id', async (c) => {
         throw new Error('Update não retornou dados');
       }
 
-      // Se atualizou o nome, garantir que o retorno tenha o nome correto
-      const finalItem = updateData.name 
-        ? { ...data, name: updateData.name }
-        : data;
+      // Se atualizou o nome, verificar se foi realmente persistido no banco
+      if (updateData.name) {
+        // Aguardar um pouco para garantir commit da transação
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Buscar item novamente do banco para verificar persistência
+        const { data: verifiedItem, error: verifyError } = await supabase
+          .from('mega_promo_inventory')
+          .select('*')
+          .eq('id', id)
+          .single();
+        
+        if (verifyError || !verifiedItem) {
+          console.warn('⚠️ [Backend] Erro ao verificar persistência do nome:', verifyError);
+          // Retornar com nome esperado mesmo se verificação falhar
+          return c.json({
+            success: true,
+            item: {
+              ...data,
+              name: updateData.name
+            }
+          });
+        }
+        
+        // Verificar se o nome foi realmente persistido
+        if (verifiedItem.name !== updateData.name) {
+          console.warn('⚠️ [Backend] Nome não foi persistido corretamente!', {
+            esperado: updateData.name,
+            retornado: verifiedItem.name
+          });
+          
+          // Tentar retry do update
+          const { error: retryError } = await supabase
+            .from('mega_promo_inventory')
+            .update({ name: updateData.name })
+            .eq('id', id);
+          
+          if (retryError) {
+            console.error('❌ [Backend] Erro no retry do update de nome:', retryError);
+            // Retornar erro em vez de mascarar o problema
+            return c.json({
+              success: false,
+              error: 'Falha ao persistir o nome no banco de dados'
+            }, 500);
+          }
+          
+          // Buscar novamente após retry
+          const { data: retryItem } = await supabase
+            .from('mega_promo_inventory')
+            .select('*')
+            .eq('id', id)
+            .single();
+          
+          if (retryItem && retryItem.name === updateData.name) {
+            console.log('✅ [Backend] Nome persistido após retry');
+            return c.json({
+              success: true,
+              item: retryItem
+            });
+          }
+          
+          // Se ainda não persistiu, retornar erro
+          return c.json({
+            success: false,
+            error: 'Falha ao persistir o nome no banco de dados após tentativas'
+          }, 500);
+        }
+        
+        // Nome foi persistido corretamente
+        console.log('✅ [Backend] Nome verificado e persistido corretamente');
+        return c.json({
+          success: true,
+          item: verifiedItem
+        });
+      }
       
-      return c.json({ success: true, item: finalItem });
+      // Retornar item atualizado (para updates que não são nome)
+      return c.json({ success: true, item: data });
     }
 
     // Nada para atualizar, retornar item atual
