@@ -28,6 +28,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Button } from './ui/button';
+import InlineEditableText from './InlineEditableText';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,9 +46,10 @@ interface EstoqueAtualProps {
   inventory: InventoryItem[];
   onDelete?: (itemId: string, itemName: string) => Promise<boolean>;
   onEdit?: (itemId: string, quantity: number) => Promise<boolean>;
+  onEditName?: (itemId: string, newName: string) => Promise<boolean>;
 }
 
-export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtualProps) {
+export default function EstoqueAtual({ inventory, onDelete, onEdit, onEditName }: EstoqueAtualProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'low' | 'ok'>('all');
   const [productFilter, setProductFilter] = useState<string>('all');
@@ -685,11 +687,43 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit }: EstoqueAtu
 
                     {/* Corpo do Card */}
                     <div className="p-3 h-full flex flex-col justify-between">
-                      {/* Nome do Produto */}
+                      {/* Nome do Produto - Editável */}
                       <div className="flex-1 mb-3">
-                        <h3 className="font-bold text-gray-900 text-sm leading-snug line-clamp-2 mb-3 uppercase">
-                          {item.name}
-                        </h3>
+                        {onEditName ? (
+                          <InlineEditableText
+                            value={item.name}
+                            onSave={async (newName) => {
+                              console.log('📝 EstoqueAtual - onSave chamado:', { itemId: item.id, newName });
+                              if (!onEditName) {
+                                console.error('❌ EstoqueAtual - onEditName não disponível!');
+                                return false;
+                              }
+                              try {
+                                const result = await onEditName(item.id, newName);
+                                console.log('✅ EstoqueAtual - Resultado:', result);
+                                return result;
+                              } catch (error) {
+                                console.error('❌ EstoqueAtual - Erro:', error);
+                                throw error;
+                              }
+                            }}
+                            className="font-bold text-gray-900 text-sm leading-snug line-clamp-2 uppercase"
+                            placeholder="Nome do produto"
+                            validate={(value) => {
+                              if (value.length < 2) {
+                                return 'O nome deve ter pelo menos 2 caracteres';
+                              }
+                              if (value.length > 100) {
+                                return 'O nome deve ter no máximo 100 caracteres';
+                              }
+                              return null;
+                            }}
+                          />
+                        ) : (
+                          <h3 className="font-bold text-gray-900 text-sm leading-snug line-clamp-2 mb-3 uppercase">
+                            {item.name}
+                          </h3>
+                        )}
                         
                         {/* Tamanho Badge - Maior */}
                         <div className="mb-2">

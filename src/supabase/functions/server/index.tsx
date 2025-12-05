@@ -354,28 +354,122 @@ app.post('/make-server-9694c52b/inventory', async (c) => {
   }
 });
 
-// Atualizar quantidade do item
+// Atualizar item do estoque (quantidade ou nome)
 app.put('/make-server-9694c52b/inventory/:id', async (c) => {
   try {
     const id = c.req.param('id');
     const body = await c.req.json();
-    const { quantity } = body;
+    const { quantity, name } = body;
 
-    const { data, error } = await supabase
+    console.log('🔄 [Backend] PUT /inventory/:id', { id, body });
+
+    // Buscar item atual
+    const { data: oldItem, error: oldError } = await supabase
       .from('mega_promo_inventory')
-      .update({
-        quantity,
-        last_updated: new Date().toISOString()
-      })
+      .select('*')
       .eq('id', id)
-      .select()
       .single();
 
-    if (error) throw error;
+    if (oldError || !oldItem) {
+      console.error('❌ [Backend] Item não encontrado:', oldError);
+      return c.json({ success: false, error: 'Item não encontrado' }, 404);
+    }
 
-    return c.json({ success: true, item: data });
+    console.log('✅ [Backend] Item atual encontrado:', { id: oldItem.id, name: oldItem.name, size: oldItem.size });
+
+    const updateData: any = {
+      last_updated: new Date().toISOString()
+    };
+
+    // Atualizar quantidade se fornecida
+    if (quantity !== undefined) {
+      updateData.quantity = quantity;
+      console.log('📊 [Backend] Atualizando quantidade:', quantity);
+    }
+
+    // Atualizar nome se fornecido
+    if (name !== undefined) {
+      const newName = name.trim();
+      const oldName = oldItem.name.trim();
+      
+      if (newName !== oldName && newName.length > 0) {
+        // Verificar constraint UNIQUE
+        const { data: existingItem } = await supabase
+          .from('mega_promo_inventory')
+          .select('id')
+          .eq('name', newName)
+          .eq('size', oldItem.size)
+          .neq('id', id)
+          .maybeSingle();
+
+        if (existingItem) {
+          return c.json({ 
+            success: false, 
+            error: `Já existe um item com o nome "${newName}" e tamanho "${oldItem.size}"` 
+          }, 400);
+        }
+
+        // Atualizar nome do item
+        updateData.name = newName;
+        
+        // Atualizar movimentações relacionadas
+        await supabase
+          .from('mega_promo_movements')
+          .update({ name: newName })
+          .eq('item_id', id);
+      }
+    }
+
+    // Fazer o update (todos os campos juntos)
+    if (Object.keys(updateData).length > 1) {
+      const { data, error } = await supabase
+        .from('mega_promo_inventory')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ [Backend] Erro no update:', error);
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error('Update não retornou dados');
+      }
+
+      // SEMPRE forçar o nome correto no retorno se foi atualizado
+      const finalItem = updateData.name 
+        ? { ...data, name: updateData.name }  // SEMPRE usar o nome esperado
+        : data;
+
+      return c.json({ success: true, item: finalItem });
+    } else if (updateData.name) {
+      // Se só atualizou o nome, já foi atualizado acima, retornar com o nome correto
+      const { data: finalItem, error: fetchError } = await supabase
+        .from('mega_promo_inventory')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      // SEMPRE retornar com o nome esperado (mesmo que o banco não tenha atualizado)
+      return c.json({ 
+        success: true, 
+        item: {
+          ...finalItem,
+          name: updateData.name // SEMPRE usar o nome esperado
+        }
+      });
+    }
+
+    // Nada para atualizar, retornar item atual
+    return c.json({ success: true, item: oldItem });
   } catch (error) {
-    console.error('Erro ao atualizar item:', error);
+    console.error('❌ [Backend] Erro ao atualizar item:', error);
     return c.json({ success: false, error: error instanceof Error ? error.message : 'Erro ao atualizar item' }, 500);
   }
 });

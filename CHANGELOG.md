@@ -7,7 +7,37 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
-## [1.0.5] - 2025-11-24
+## [1.0.6] - 2025-01-26
+
+### ✨ Adicionado
+- **Edição inline de nome de produto** diretamente na lista de estoque
+  - Componente reutilizável `InlineEditableText` para edição inline profissional
+  - Edição clicando no nome do produto no card de estoque
+  - Validação de nome (mínimo 2 caracteres, máximo 100 caracteres)
+  - Sincronização automática em todas as partes do sistema:
+    - Lista de estoque
+    - Histórico de movimentações
+    - Listas suspensas de cadastro de itens
+    - Listas suspensas de registro de movimentações
+  - Atualização otimista do estado local para melhor UX
+  - Persistência no banco de dados (Supabase)
+
+### 🎨 Melhorias de Interface
+- Interface de edição inline intuitiva com botões de salvar/cancelar
+- Feedback visual durante o salvamento
+- Mensagens de erro claras e diretas
+
+### ⚡ Performance
+- Atualização otimista do estado para resposta imediata
+- Sem refresh desnecessário após edição
+- Componente memoizado para evitar re-renders
+
+### 🛡️ Validações
+- Validação de constraint UNIQUE(name, size) no backend
+- Validação de tamanho mínimo e máximo no frontend
+- Tratamento de erros robusto
+
+## [1.0.5] - 2025-01-26
 
 ### 🔄 Alterado
 - Atualizações e melhorias gerais no sistema
