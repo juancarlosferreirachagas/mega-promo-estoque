@@ -411,10 +411,7 @@ app.put('/make-server-9694c52b/inventory/:id', async (c) => {
           }, 400);
         }
 
-        // ATUALIZAR DIRETO NO BANCO - SIMPLES E DIRETO
-        console.log('💾 [Backend] Fazendo UPDATE direto no banco...');
-        
-        // 1. Atualizar movimentações primeiro
+        // Atualizar movimentações relacionadas PRIMEIRO
         const { error: movError } = await supabase
           .from('mega_promo_movements')
           .update({ name: newName })
@@ -424,72 +421,15 @@ app.put('/make-server-9694c52b/inventory/:id', async (c) => {
           console.error('❌ [Backend] Erro ao atualizar movimentações:', movError);
           throw movError;
         }
-        console.log('✅ [Backend] Movimentações atualizadas');
         
-        // 2. Atualizar item no inventário - FORÇAR UPDATE DIRETO
-        console.log('💾 [Backend] Executando UPDATE no banco...');
-        const { error: updateError } = await supabase
-          .from('mega_promo_inventory')
-          .update({ 
-            name: newName,
-            last_updated: new Date().toISOString()
-          })
-          .eq('id', id);
-
-        if (updateError) {
-          console.error('❌ [Backend] Erro no UPDATE:', updateError);
-          throw updateError;
-        }
-
-        console.log('✅ [Backend] UPDATE executado com sucesso');
-
-        // 3. Buscar item atualizado do banco (forçar fresh data)
-        await new Promise(resolve => setTimeout(resolve, 100)); // Pequeno delay para garantir commit
-        
-        const { data: updatedItem, error: fetchError } = await supabase
-          .from('mega_promo_inventory')
-          .select('*')
-          .eq('id', id)
-          .single();
-
-        if (fetchError) {
-          console.error('❌ [Backend] Erro ao buscar item atualizado:', fetchError);
-          // Mesmo com erro, retornar com o nome esperado
-          return c.json({ 
-            success: true, 
-            item: {
-              ...oldItem,
-              name: newName,
-              last_updated: new Date().toISOString()
-            }
-          });
-        }
-
-        console.log('✅ [Backend] Item buscado após UPDATE:', { 
-          id: updatedItem.id, 
-          name: updatedItem.name,
-          esperado: newName
-        });
-
-        // 4. SEMPRE retornar com o nome que foi enviado (garantir consistência)
-        const finalItem = {
-          ...updatedItem,
-          name: newName // FORÇAR nome correto
-        };
-
-        console.log('✅ [Backend] Retornando item final:', finalItem);
-        return c.json({ success: true, item: finalItem });
+        // Atualizar nome no inventário
+        updateData.name = newName;
       }
     }
 
-    // Se não atualizou nome, atualizar quantidade se necessário
-    if (quantity !== undefined && quantity !== oldItem.quantity) {
-      updateData.quantity = quantity;
-    }
-
-    // Fazer update de quantidade se necessário
-    if (Object.keys(updateData).length > 1) { // Mais que apenas last_updated
-      console.log('💾 [Backend] Atualizando quantidade:', updateData);
+    // Fazer o update no banco (sempre que houver algo para atualizar)
+    if (Object.keys(updateData).length > 0) {
+      console.log('💾 [Backend] Dados para update:', updateData);
       
       const { data, error } = await supabase
         .from('mega_promo_inventory')
@@ -507,7 +447,12 @@ app.put('/make-server-9694c52b/inventory/:id', async (c) => {
         throw new Error('Update não retornou dados');
       }
 
-      return c.json({ success: true, item: data });
+      // Se atualizou o nome, garantir que o retorno tenha o nome correto
+      const finalItem = updateData.name 
+        ? { ...data, name: updateData.name }
+        : data;
+      
+      return c.json({ success: true, item: finalItem });
     }
 
     // Nada para atualizar, retornar item atual
