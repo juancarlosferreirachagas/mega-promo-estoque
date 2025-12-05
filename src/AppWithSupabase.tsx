@@ -549,11 +549,15 @@ export default function AppWithSupabase() {
         return updated;
       });
       
-      // NÃO fazer refresh automático - o estado já foi atualizado otimisticamente
-      // O refresh só acontece quando o usuário recarregar a página manualmente
-      // Isso garante que a mudança seja instantânea na UI
+      // Fazer refresh após 1 segundo para garantir sincronização com banco
+      setTimeout(async () => {
+        console.log('🔄 [App] Fazendo refresh para sincronizar com banco...');
+        await refreshInventory();
+        await refreshMovements();
+        console.log('✅ [App] Refresh concluído');
+      }, 1000);
       
-      console.log('✅ [App] handleEditItemName concluído com sucesso - estado local atualizado');
+      console.log('✅ [App] handleEditItemName concluído com sucesso');
       return true;
     } catch (error: any) {
       console.error('❌ [App] Erro ao atualizar nome do item:', error);
