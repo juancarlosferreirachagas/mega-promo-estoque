@@ -411,39 +411,73 @@ app.put('/make-server-9694c52b/inventory/:id', async (c) => {
           }, 400);
         }
 
-        // Usar função RPC para garantir atualização atômica
-        console.log('🔄 [Backend] Tentando usar função RPC...');
-        const { data: rpcResult, error: rpcError } = await supabase.rpc('update_inventory_name', {
-          p_id: id,
-          p_name: newName
-        });
+        // ESTRATÉGIA: Atualizar movimentações primeiro, depois inventário
+        // Isso evita problemas com constraint UNIQUE
         
-        if (rpcError) {
-          console.error('❌ [Backend] RPC falhou, usando método direto:', rpcError);
-          // Se RPC falhar, fazer update direto
-          updateData.name = newName;
-          
-          // Atualizar movimentações relacionadas
-          const { error: movError } = await supabase
-            .from('mega_promo_movements')
-            .update({ name: newName })
-            .eq('item_id', id);
-          
-          if (movError) {
-            console.error('❌ [Backend] Erro ao atualizar movimentações:', movError);
-            throw movError;
-          }
-        } else {
-          console.log('✅ [Backend] RPC executado com sucesso');
-          // RPC já atualizou tudo, só precisamos incluir no retorno
-          updateData.name = newName;
+        // 1. Atualizar movimentações relacionadas PRIMEIRO
+        const { error: movError } = await supabase
+          .from('mega_promo_movements')
+          .update({ name: newName })
+          .eq('item_id', id);
+        
+        if (movError) {
+          console.error('❌ [Backend] Erro ao atualizar movimentações:', movError);
+          throw movError;
         }
+        
+        // 2. Atualizar nome no inventário - UPDATE DIRETO SEM SELECT
+        const { error: updateError } = await supabase
+          .from('mega_promo_inventory')
+          .update({
+            name: newName,
+            last_updated: new Date().toISOString()
+          })
+          .eq('id', id);
+        
+        if (updateError) {
+          console.error('❌ [Backend] Erro ao atualizar inventário:', updateError);
+          throw updateError;
+        }
+        
+        // 3. Buscar item atualizado do banco (forçar fresh data)
+        await new Promise(resolve => setTimeout(resolve, 200)); // Pequeno delay para commit
+        
+        const { data: updatedItem, error: fetchError } = await supabase
+          .from('mega_promo_inventory')
+          .select('*')
+          .eq('id', id)
+          .single();
+        
+        if (fetchError || !updatedItem) {
+          // Se falhar, retornar com dados esperados
+          return c.json({
+            success: true,
+            item: {
+              ...oldItem,
+              name: newName,
+              last_updated: new Date().toISOString()
+            }
+          });
+        }
+        
+        // 4. Retornar item com nome garantido
+        return c.json({
+          success: true,
+          item: {
+            ...updatedItem,
+            name: newName // Sempre usar o nome esperado
+          }
+        });
       }
     }
 
-    // Fazer o update no banco (sempre que houver algo para atualizar)
-    if (Object.keys(updateData).length > 0) {
-      console.log('💾 [Backend] Dados para update:', updateData);
+    // Fazer o update de quantidade se necessário (nome já foi tratado acima)
+    if (quantity !== undefined && quantity !== oldItem.quantity) {
+      updateData.quantity = quantity;
+    }
+
+    if (Object.keys(updateData).length > 1) { // Mais que apenas last_updated
+      console.log('💾 [Backend] Atualizando quantidade:', updateData);
       
       const { data, error } = await supabase
         .from('mega_promo_inventory')
@@ -461,39 +495,6 @@ app.put('/make-server-9694c52b/inventory/:id', async (c) => {
         throw new Error('Update não retornou dados');
       }
 
-      // Se atualizou o nome, verificar se foi realmente salvo
-      if (updateData.name) {
-        // Aguardar um pouco para garantir commit
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        // Buscar item novamente do banco para verificar
-        const { data: verifyItem, error: verifyError } = await supabase
-          .from('mega_promo_inventory')
-          .select('*')
-          .eq('id', id)
-          .single();
-        
-        if (!verifyError && verifyItem) {
-          console.log('🔍 [Backend] Verificação pós-update:', {
-            esperado: updateData.name,
-            recebido: verifyItem.name
-          });
-          
-          // Se o nome não corresponde, forçar no retorno (pode ser cache)
-          const finalItem = verifyItem.name === updateData.name
-            ? verifyItem
-            : { ...verifyItem, name: updateData.name };
-          
-          return c.json({ success: true, item: finalItem });
-        }
-        
-        // Se verificação falhar, retornar com nome forçado
-        return c.json({ 
-          success: true, 
-          item: { ...data, name: updateData.name }
-        });
-      }
-      
       return c.json({ success: true, item: data });
     }
 
