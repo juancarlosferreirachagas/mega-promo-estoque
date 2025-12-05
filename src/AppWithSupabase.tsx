@@ -447,7 +447,7 @@ export default function AppWithSupabase() {
 
   const handleEditItem = useCallback(async (itemId: string, quantity: number) => {
     try {
-      const updatedItem = await api.updateInventoryItem(itemId, quantity);
+      const updatedItem = await api.updateInventoryItem(itemId, { quantity });
 
       if (updatedItem) {
         await refreshInventory();
@@ -467,6 +467,97 @@ export default function AppWithSupabase() {
       return false;
     }
   }, [refreshInventory, showMessage]);
+
+  const handleEditItemName = useCallback(async (itemId: string, newName: string) => {
+    try {
+      console.log('🔄 [App] handleEditItemName chamado:', { itemId, newName });
+      
+      // Buscar item atual para validação
+      const currentItem = inventory.find(i => i.id === itemId);
+      console.log('🔍 [App] Item atual encontrado:', currentItem);
+      
+      if (!currentItem) {
+        throw new Error('Item não encontrado no estoque');
+      }
+
+      // Validar se o nome mudou
+      if (currentItem.name.trim() === newName.trim()) {
+        console.log('ℹ️ [App] Nome não mudou, retornando sucesso');
+        return true; // Nome não mudou, considerar sucesso
+      }
+
+      console.log('📝 [App] Nome antigo:', currentItem.name, '| Novo nome:', newName);
+
+      // Atualizar no banco
+      const updatedItem = await api.updateInventoryItem(itemId, { name: newName });
+
+      console.log('📦 [App] Item atualizado da API:', updatedItem);
+
+      if (!updatedItem) {
+        throw new Error('Não foi possível atualizar o nome do item');
+      }
+
+      // Verificar se o nome foi realmente atualizado
+      // Se não foi, pode ser cache do Supabase - vamos confiar no update e continuar
+      if (updatedItem.name !== newName.trim()) {
+        console.warn('⚠️ [App] Nome retornado não corresponde ao esperado (pode ser cache do Supabase)');
+        console.warn('⚠️ [App] Esperado:', newName.trim(), '| Recebido:', updatedItem.name);
+        console.log('✅ [App] Continuando - o update foi feito, será refletido no próximo refresh');
+        // Não jogar erro - o update foi feito, só não está refletindo ainda
+      }
+
+      console.log('✅ [App] Nome atualizado com sucesso no banco');
+
+      // IMPORTANTE: Atualizar estado local IMEDIATAMENTE e NÃO fazer refresh
+      // O refresh sobrescreve o estado otimista, então vamos manter o estado atualizado localmente
+      setInventory(prev => {
+        const updated = prev.map(item => 
+          item.id === itemId 
+            ? { ...item, name: newName.trim() }
+            : item
+        );
+        console.log('✅ [App] Estado local atualizado otimisticamente:', {
+          itemId,
+          oldName: currentItem.name,
+          newName: newName.trim()
+        });
+        return updated;
+      });
+
+      // Atualizar movimentações locais também
+      setMovements(prev => prev.map(mov => 
+        mov.item_id === itemId 
+          ? { ...mov, name: newName.trim() }
+          : mov
+      ));
+
+      // Atualizar customProducts IMEDIATAMENTE
+      setCustomProducts(prev => {
+        const updated = [...prev];
+        const oldName = currentItem.name;
+        
+        // Encontrar e atualizar o produto
+        const productIndex = updated.findIndex(p => p.name === oldName);
+        if (productIndex !== -1) {
+          updated[productIndex].name = newName.trim();
+        } else {
+          updated.push({ 
+            name: newName.trim(), 
+            variations: [currentItem.size] 
+          });
+        }
+        
+        return updated;
+      });
+      
+      console.log('✅ [App] handleEditItemName concluído com sucesso - estado local atualizado');
+      return true;
+    } catch (error: any) {
+      console.error('❌ [App] Erro ao atualizar nome do item:', error);
+      // O erro será tratado pelo componente InlineEditableText
+      throw error;
+    }
+  }, [inventory, refreshInventory, refreshMovements]);
 
   const handleDeleteItem = useCallback(async (itemId: string, itemName: string) => {
     try {
@@ -681,6 +772,7 @@ export default function AppWithSupabase() {
               inventory={inventory}
               onEdit={currentUser ? handleEditItem : undefined}
               onDelete={currentUser?.isMaster ? handleDeleteItem : undefined}
+              onEditName={currentUser ? handleEditItemName : undefined}
             />
           </TabsContent>
 

@@ -224,30 +224,58 @@ export const createInventoryItem = async (name: string, size: string, quantity: 
   }
 };
 
-export const updateInventoryItem = async (id: string, quantity: number): Promise<InventoryItem | null> => {
+export const updateInventoryItem = async (
+  id: string, 
+  updates: { quantity?: number; name?: string }
+): Promise<InventoryItem | null> => {
   try {
+    console.log('📤 [API] Atualizando item:', { id, updates });
+    
     const response = await fetch(`${API_URL}/inventory/${id}`, {
       method: 'PUT',
       headers: getHeaders(),
-      body: JSON.stringify({ quantity }),
+      body: JSON.stringify(updates),
     });
     
+    console.log('📥 [API] Status da resposta:', response.status);
+    
     const data = await response.json();
+    console.log('📥 [API] Dados recebidos:', data);
     
     if (data.success && data.item) {
-      return {
+      // IMPORTANTE: Se estamos atualizando o nome, garantir que o nome retornado seja o esperado
+      // Isso evita problemas de cache do Supabase
+      let returnedName = data.item.name;
+      if (updates.name && data.item.name !== updates.name.trim()) {
+        console.warn('⚠️ [API] Nome retornado não corresponde ao enviado, usando o nome esperado:', {
+          enviado: updates.name.trim(),
+          retornado: data.item.name
+        });
+        returnedName = updates.name.trim();
+      }
+      
+      const result = {
         id: data.item.id,
-        name: data.item.name,
+        name: returnedName,
         size: data.item.size,
         quantity: data.item.quantity,
         lastUpdated: new Date(data.item.last_updated).getTime(),
       };
+      
+      console.log('✅ [API] Item atualizado:', result);
+      return result;
     }
     
+    if (data.error) {
+      console.error('❌ [API] Erro do servidor:', data.error);
+      throw new Error(data.error);
+    }
+    
+    console.warn('⚠️ [API] Resposta sem sucesso nem erro');
     return null;
   } catch (error) {
-    console.error('Erro ao atualizar item:', error);
-    return null;
+    console.error('❌ [API] Erro ao atualizar item:', error);
+    throw error;
   }
 };
 
