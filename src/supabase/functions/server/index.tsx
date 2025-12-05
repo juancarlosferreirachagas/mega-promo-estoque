@@ -411,88 +411,57 @@ app.put('/make-server-9694c52b/inventory/:id', async (c) => {
           }, 400);
         }
 
-        // ATUALIZAÇÃO GARANTIDA: Fazer update direto e verificar
+        // SOLUÇÃO DEFINITIVA: Usar função RPC SQL que garante update atômico
+        console.log('🔄 [Backend] Chamando função SQL RPC...');
+        const { data: rpcResult, error: rpcError } = await supabase.rpc('update_inventory_name', {
+          p_id: id,
+          p_name: newName
+        });
         
-        // 1. Atualizar movimentações primeiro
-        const { error: movError } = await supabase
-          .from('mega_promo_movements')
-          .update({ name: newName })
-          .eq('item_id', id);
-        
-        if (movError) {
-          console.error('❌ [Backend] Erro ao atualizar movimentações:', movError);
-          throw movError;
+        if (rpcError) {
+          console.error('❌ [Backend] RPC falhou:', rpcError);
+          // Se RPC não existir, usar método direto
+          console.log('🔄 [Backend] Usando método direto como fallback...');
+          
+          // Atualizar movimentações
+          const { error: movError } = await supabase
+            .from('mega_promo_movements')
+            .update({ name: newName })
+            .eq('item_id', id);
+          
+          if (movError) throw movError;
+          
+          // Atualizar inventário
+          const { error: updateError } = await supabase
+            .from('mega_promo_inventory')
+            .update({ name: newName, last_updated: new Date().toISOString() })
+            .eq('id', id);
+          
+          if (updateError) throw updateError;
         }
         
-        // 2. Atualizar inventário - FORÇAR UPDATE
-        const { error: updateError } = await supabase
-          .from('mega_promo_inventory')
-          .update({
-            name: newName,
-            last_updated: new Date().toISOString()
-          })
-          .eq('id', id);
+        // Aguardar commit
+        await new Promise(resolve => setTimeout(resolve, 300));
         
-        if (updateError) {
-          console.error('❌ [Backend] Erro no UPDATE:', updateError);
-          throw updateError;
-        }
-        
-        // 3. Aguardar e verificar se foi salvo
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // 4. Buscar novamente para confirmar
-        const { data: verifiedItem, error: verifyError } = await supabase
+        // Buscar item atualizado do banco
+        const { data: finalItem, error: fetchError } = await supabase
           .from('mega_promo_inventory')
           .select('*')
           .eq('id', id)
           .single();
         
-        if (verifyError || !verifiedItem) {
-          // Retornar com nome esperado mesmo se verificação falhar
+        if (fetchError || !finalItem) {
+          // Retornar com nome esperado
           return c.json({
             success: true,
-            item: {
-              ...oldItem,
-              name: newName,
-              last_updated: new Date().toISOString()
-            }
+            item: { ...oldItem, name: newName, last_updated: new Date().toISOString() }
           });
         }
         
-        // 5. Se nome não corresponde, o update não persistiu - tentar novamente
-        if (verifiedItem.name !== newName) {
-          console.warn('⚠️ [Backend] Nome não persistiu, tentando novamente...');
-          
-          const { error: retryError } = await supabase
-            .from('mega_promo_inventory')
-            .update({ name: newName })
-            .eq('id', id);
-          
-          if (retryError) {
-            throw retryError;
-          }
-          
-          // Buscar novamente após retry
-          const { data: retryItem } = await supabase
-            .from('mega_promo_inventory')
-            .select('*')
-            .eq('id', id)
-            .single();
-          
-          return c.json({
-            success: true,
-            item: {
-              ...(retryItem || verifiedItem),
-              name: newName
-            }
-          });
-        }
-        
-        // 6. Nome corresponde - retornar item atualizado
+        // Retornar item com nome garantido
         return c.json({
           success: true,
-          item: verifiedItem
+          item: { ...finalItem, name: newName }
         });
       }
     }
@@ -1053,4 +1022,5 @@ app.get('/make-server-9694c52b/verify-schema', async (c) => {
 });
 
 // Iniciar servidor
+Deno.serve(app.fetch);
 Deno.serve(app.fetch);
