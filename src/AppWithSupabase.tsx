@@ -233,6 +233,20 @@ export default function AppWithSupabase() {
     const movementsData = await api.getMovements();
     setMovements(movementsData);
   }, []);
+  
+  // Função otimizada para refresh paralelo de inventory e movements
+  const refreshAll = useCallback(async () => {
+    try {
+      const [inventoryData, movementsData] = await Promise.all([
+        api.getInventory(),
+        api.getMovements()
+      ]);
+      setInventory(inventoryData);
+      setMovements(movementsData);
+    } catch (error) {
+      console.error('Erro ao atualizar dados:', error);
+    }
+  }, []);
 
   // Funções de autenticação
   const handleLogin = async (username: string, password: string): Promise<boolean> => {
@@ -360,8 +374,8 @@ export default function AppWithSupabase() {
       });
 
       if (result.success) {
-        await refreshInventory();
-        await refreshMovements();
+        // Paralelizar refresh para melhor performance
+        await refreshAll();
         
         const typeText = type === 'entrada' ? 'Entrada' : 'Saída';
         showMessage(
@@ -378,7 +392,7 @@ export default function AppWithSupabase() {
       showMessage('Erro', 'Erro ao registrar movimentação no banco de dados.');
       return false;
     }
-  }, [inventory, currentUser, refreshInventory, refreshMovements, showMessage]);
+  }, [inventory, currentUser, refreshAll, showMessage]);
 
   const handleEditMovement = useCallback(async (
     movementId: string,
@@ -407,8 +421,8 @@ export default function AppWithSupabase() {
       });
 
       if (result.success) {
-        await refreshInventory();
-        await refreshMovements();
+        // Paralelizar refresh para melhor performance
+        await refreshAll();
         setEditModal({ isOpen: false, movement: null });
         
         showMessage('Movimentação Atualizada', 'A movimentação foi atualizada com sucesso.');
@@ -422,15 +436,15 @@ export default function AppWithSupabase() {
       showMessage('Erro', 'Erro ao atualizar movimentação no banco de dados.');
       return false;
     }
-  }, [currentUser, refreshInventory, refreshMovements, showMessage]);
+  }, [currentUser, refreshAll, showMessage]);
 
   const handleDeleteMovement = useCallback(async (movementId: string) => {
     try {
       const result = await api.deleteMovement(movementId);
 
       if (result.success) {
-        await refreshInventory();
-        await refreshMovements();
+        // Paralelizar refresh para melhor performance
+        await refreshAll();
         
         showMessage('Movimentação Excluída', 'A movimentação foi excluída e o estoque foi ajustado.');
         return true;
@@ -443,14 +457,40 @@ export default function AppWithSupabase() {
       showMessage('Erro', 'Erro ao excluir movimentação do banco de dados.');
       return false;
     }
-  }, [refreshInventory, refreshMovements, showMessage]);
+  }, [refreshAll, showMessage]);
 
   const handleEditItem = useCallback(async (itemId: string, quantity: number) => {
     try {
+      // Validar quantidade antes de enviar
+      if (isNaN(quantity) || quantity < 0) {
+        showMessage('Erro', 'Quantidade inválida. Por favor, insira um número maior ou igual a zero.');
+        return false;
+      }
+
+      // Optimistic update - atualizar UI imediatamente
+      const oldItem = inventory.find(i => i.id === itemId);
+      if (oldItem) {
+        setInventory(prev => prev.map(item => 
+          item.id === itemId 
+            ? { ...item, quantity, lastUpdated: Date.now() }
+            : item
+        ));
+      }
+
+      // Fazer a requisição em background
       const updatedItem = await api.updateInventoryItem(itemId, { quantity });
 
       if (updatedItem) {
-        await refreshInventory();
+        // Atualizar com dados do servidor (pode ter mudanças adicionais)
+        setInventory(prev => prev.map(item => 
+          item.id === itemId 
+            ? {
+                ...item,
+                quantity: updatedItem.quantity,
+                lastUpdated: updatedItem.lastUpdated
+              }
+            : item
+        ));
         
         showMessage(
           'Item Atualizado', 
@@ -458,15 +498,37 @@ export default function AppWithSupabase() {
         );
         return true;
       } else {
+        // Reverter optimistic update em caso de erro
+        if (oldItem) {
+          setInventory(prev => prev.map(item => 
+            item.id === itemId ? oldItem : item
+          ));
+        }
         showMessage('Erro', 'Não foi possível atualizar o item.');
         return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao atualizar item:', error);
-      showMessage('Erro', 'Erro ao atualizar item no banco de dados.');
+      
+      // Reverter optimistic update em caso de erro
+      const oldItem = inventory.find(i => i.id === itemId);
+      if (oldItem) {
+        setInventory(prev => prev.map(item => 
+          item.id === itemId ? oldItem : item
+        ));
+      }
+      
+      let errorMessage = error.message || 'Erro ao atualizar item no banco de dados.';
+      
+      // Mensagem mais clara para erro 404
+      if (errorMessage.includes('404') || errorMessage.includes('não encontrado')) {
+        errorMessage = 'Função do Supabase não encontrada. Verifique se a função está deployada no Supabase.';
+      }
+      
+      showMessage('Erro', errorMessage);
       return false;
     }
-  }, [refreshInventory, showMessage]);
+  }, [inventory, showMessage]);
 
   const handleEditItemName = useCallback(async (itemId: string, newName: string) => {
     try {
@@ -552,14 +614,12 @@ export default function AppWithSupabase() {
       // Fazer refresh IMEDIATO e depois novamente após 2 segundos para garantir
       setTimeout(async () => {
         console.log('🔄 [App] Primeiro refresh (1s)...');
-        await refreshInventory();
-        await refreshMovements();
+        await refreshAll();
       }, 1000);
       
       setTimeout(async () => {
         console.log('🔄 [App] Segundo refresh (3s) para garantir persistência...');
-        await refreshInventory();
-        await refreshMovements();
+        await refreshAll();
         console.log('✅ [App] Refresh completo');
       }, 3000);
       
@@ -570,15 +630,15 @@ export default function AppWithSupabase() {
       // O erro será tratado pelo componente InlineEditableText
       throw error;
     }
-  }, [inventory, refreshInventory, refreshMovements]);
+  }, [inventory, refreshAll]);
 
   const handleDeleteItem = useCallback(async (itemId: string, itemName: string) => {
     try {
       const result = await api.deleteInventoryItem(itemId);
 
       if (result.success) {
-        await refreshInventory();
-        await refreshMovements();
+        // Paralelizar refresh para melhor performance
+        await refreshAll();
         
         const movText = result.deletedMovements 
           ? ` e ${result.deletedMovements} movimentação(ões) foram removidas` 

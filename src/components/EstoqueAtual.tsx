@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { InventoryItem } from '../AppWithSupabase';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { 
@@ -51,6 +51,7 @@ interface EstoqueAtualProps {
 
 export default function EstoqueAtual({ inventory, onDelete, onEdit, onEditName }: EstoqueAtualProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'low' | 'ok'>('all');
   const [productFilter, setProductFilter] = useState<string>('all');
   const [sizeFilter, setSizeFilter] = useState<string>('all');
@@ -64,6 +65,15 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit, onEditName }
     item: null
   });
   const [editingQuantity, setEditingQuantity] = useState<{ itemId: string; value: string } | null>(null);
+  
+  // Debounce para busca - otimização de performance
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300); // 300ms de delay
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   // Filtros dinâmicos - apenas produtos e tamanhos que estão realmente no estoque
   const availableProducts = useMemo(() => {
@@ -93,7 +103,8 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit, onEditName }
     return { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-300' };
   };
 
-  const getProductIcon = (productName: string) => {
+  // Memoizar getProductIcon para evitar recálculos
+  const getProductIcon = useCallback((productName: string) => {
     const nameLower = productName.toLowerCase();
     
     // Roupas
@@ -134,7 +145,18 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit, onEditName }
     
     // Padrão
     return Package;
-  };
+  }, []);
+  
+  // Cache de ícones por produto para evitar recálculos
+  const productIconCache = useMemo(() => {
+    const cache = new Map<string, any>();
+    inventory.forEach(item => {
+      if (!cache.has(item.name)) {
+        cache.set(item.name, getProductIcon(item.name));
+      }
+    });
+    return cache;
+  }, [inventory, getProductIcon]);
 
   const handleExportExcel = useCallback(async () => {
     if (inventory.length === 0) {
@@ -318,12 +340,14 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit, onEditName }
     alert(`✅ ESTOQUE EXPORTADO COM SUCESSO!\n\n📦 ${inventory.length} PRODUTO(S)\n📊 ${totalQuantity} UNIDADE(S) TOTAL\n📁 ARQUIVO: ${fileName}`);
   }, [inventory]);
 
-  // Aplicar filtros
+  // Aplicar filtros - usando debouncedSearchTerm para melhor performance
   const filteredInventory = useMemo(() => {
+    const searchLower = debouncedSearchTerm.toLowerCase();
     return inventory.filter(item => {
-      // Filtro de busca
-      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           item.size.toLowerCase().includes(searchTerm.toLowerCase());
+      // Filtro de busca (otimizado com cache de lowercase)
+      const matchesSearch = !searchLower || 
+                           item.name.toLowerCase().includes(searchLower) ||
+                           item.size.toLowerCase().includes(searchLower);
       
       // Filtro de status
       const isLowStock = item.quantity < 10;
@@ -339,7 +363,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit, onEditName }
       
       return matchesSearch && matchesStatus && matchesProduct && matchesSize;
     });
-  }, [inventory, searchTerm, statusFilter, productFilter, sizeFilter]);
+  }, [inventory, debouncedSearchTerm, statusFilter, productFilter, sizeFilter]);
 
   // Aplicar ordenação
   const sortedInventory = useMemo(() => {
@@ -392,18 +416,31 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit, onEditName }
   const handleInlineEditSave = useCallback(async (itemId: string) => {
     if (!editingQuantity || !onEdit) return;
     
-    const newQuantity = parseInt(editingQuantity.value);
+    // Limpar e validar o valor
+    const trimmedValue = editingQuantity.value.trim();
+    if (!trimmedValue) {
+      alert('POR FAVOR, INSIRA UMA QUANTIDADE VÁLIDA.');
+      setEditingQuantity(null);
+      return;
+    }
+    
+    const newQuantity = parseInt(trimmedValue, 10);
     if (isNaN(newQuantity) || newQuantity < 0) {
       alert('POR FAVOR, INSIRA UMA QUANTIDADE VÁLIDA (NÚMERO MAIOR OU IGUAL A ZERO).');
       setEditingQuantity(null);
       return;
     }
 
-    const success = await onEdit(itemId, newQuantity);
-    if (success) {
-      setEditingQuantity(null);
-    } else {
-      alert('ERRO AO ATUALIZAR A QUANTIDADE. TENTE NOVAMENTE.');
+    try {
+      const success = await onEdit(itemId, newQuantity);
+      if (success) {
+        setEditingQuantity(null);
+      } else {
+        alert('ERRO AO ATUALIZAR A QUANTIDADE. TENTE NOVAMENTE.');
+      }
+    } catch (error: any) {
+      console.error('Erro ao salvar quantidade:', error);
+      alert(`ERRO AO ATUALIZAR A QUANTIDADE: ${error.message || 'Erro desconhecido'}`);
     }
   }, [editingQuantity, onEdit]);
 
@@ -643,7 +680,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit, onEditName }
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 pb-6">
               {sortedInventory.map((item) => {
                 const isLowStock = item.quantity < 10;
-                const ProductIcon = getProductIcon(item.name);
+                const ProductIcon = productIconCache.get(item.name) || Package;
                 
                 return (
                   <div

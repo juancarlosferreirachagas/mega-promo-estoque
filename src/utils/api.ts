@@ -239,6 +239,30 @@ export const updateInventoryItem = async (
     
     console.log('📥 [API] Status da resposta:', response.status);
     
+    // Verificar se a resposta está ok antes de fazer parse
+    if (!response.ok) {
+      let errorMessage = `Erro HTTP ${response.status}`;
+      
+      // Tentar obter mensagem de erro do servidor
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorMessage;
+        console.error('❌ [API] Resposta não OK:', errorData);
+      } catch (parseError) {
+        // Se não conseguir fazer parse, usar mensagem padrão baseada no status
+        if (response.status === 404) {
+          errorMessage = 'Endpoint não encontrado. Verifique se a função do Supabase está deployada.';
+        } else if (response.status === 500) {
+          errorMessage = 'Erro interno do servidor. Tente novamente mais tarde.';
+        } else if (response.status === 401 || response.status === 403) {
+          errorMessage = 'Não autorizado. Verifique suas credenciais.';
+        }
+        console.error('❌ [API] Erro ao fazer parse da resposta:', parseError);
+      }
+      
+      throw new Error(errorMessage);
+    }
+    
     const data = await response.json();
     console.log('📥 [API] Dados recebidos:', data);
     
