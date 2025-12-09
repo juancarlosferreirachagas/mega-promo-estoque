@@ -53,6 +53,7 @@ export default function CadastrarItem({
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
   const [editProductName, setEditProductName] = useState("");
   const [editProductVariations, setEditProductVariations] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isCustomProduct = product === "__CUSTOM__";
 
@@ -112,8 +113,10 @@ export default function CadastrarItem({
     }
   }, [availableVariations]);
 
-  const handleSubmit = useCallback((e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isSubmitting) return;
 
     const finalProductName = isCustomProduct
       ? customProductName.trim()
@@ -124,63 +127,73 @@ export default function CadastrarItem({
       return;
     }
 
+    setIsSubmitting(true);
+
     let finalSize: string = "";
 
-    if (isCustomProduct) {
-      if (sizeType === "unique") {
-        finalSize = "ÚNICO";
-      } else if (selectedSizes.length > 0) {
-        // Se houver múltiplos tamanhos selecionados, cadastrar todos
-        if (selectedSizes.length > 1) {
-          let successCount = 0;
-          selectedSizes.forEach((selectedSize) => {
-            onCadastrar(finalProductName, selectedSize, quantity);
-            successCount++;
-          });
+    try {
+      if (isCustomProduct) {
+        if (sizeType === "unique") {
+          finalSize = "ÚNICO";
+        } else if (selectedSizes.length > 0) {
+          // Se houver múltiplos tamanhos selecionados, cadastrar todos
+          if (selectedSizes.length > 1) {
+            let successCount = 0;
+            for (const selectedSize of selectedSizes) {
+              await onCadastrar(finalProductName, selectedSize, quantity);
+              successCount++;
+            }
 
-          alert(`✅ ${successCount} variação(ões) cadastrada(s) com sucesso!`);
+            alert(`✅ ${successCount} variação(ões) cadastrada(s) com sucesso!`);
 
-          setSelectedSizes([]);
-          setQuantity(0);
-          setMultipleMode(false);
-          setProduct("");
-          setCustomProductName("");
-          setSizeType(null);
-          return;
-        } else {
-          // Se houver apenas 1 tamanho selecionado, usar ele
-          finalSize = selectedSizes[0];
+            setSelectedSizes([]);
+            setQuantity(0);
+            setMultipleMode(false);
+            setProduct("");
+            setCustomProductName("");
+            setSizeType(null);
+            setIsSubmitting(false);
+            return;
+          } else {
+            // Se houver apenas 1 tamanho selecionado, usar ele
+            finalSize = selectedSizes[0];
+          }
+        } else if (customSize.trim()) {
+          finalSize = customSize.trim();
         }
-      } else if (customSize.trim()) {
-        finalSize = customSize.trim();
+      } else {
+        if (isCustomSize && customSize.trim()) {
+          finalSize = customSize.trim();
+        } else if (size) {
+          finalSize = size;
+        }
       }
-    } else {
-      if (isCustomSize && customSize.trim()) {
-        finalSize = customSize.trim();
-      } else if (size) {
-        finalSize = size;
+
+      if (!finalSize) {
+        alert("Por favor, selecione ou digite um tamanho.");
+        setIsSubmitting(false);
+        return;
       }
+
+      await onCadastrar(finalProductName, finalSize, quantity);
+
+      alert(`✅ Produto "${finalProductName}" com tamanho "${finalSize}" cadastrado com sucesso!`);
+
+      setProduct("");
+      setCustomProductName("");
+      setSize("");
+      setCustomSize("");
+      setQuantity(0);
+      setIsCustomSize(false);
+      setSizeType(null);
+      setSelectedSizes([]);
+      setMultipleMode(false);
+    } catch (error) {
+      console.error('Erro ao cadastrar:', error);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    if (!finalSize) {
-      alert("Por favor, selecione ou digite um tamanho.");
-      return;
-    }
-
-    onCadastrar(finalProductName, finalSize, quantity);
-
-    alert(`✅ Produto "${finalProductName}" com tamanho "${finalSize}" cadastrado com sucesso!`);
-
-    setProduct("");
-    setCustomProductName("");
-    setSize("");
-    setCustomSize("");
-    setQuantity(0);
-    setIsCustomSize(false);
-    setSizeType(null);
-    setSelectedSizes([]);
-    setMultipleMode(false);
-  }, [product, customProductName, isCustomProduct, size, customSize, isCustomSize, quantity, multipleMode, selectedSizes, sizeType, onCadastrar]);
+  }, [product, customProductName, isCustomProduct, size, customSize, isCustomSize, quantity, multipleMode, selectedSizes, sizeType, onCadastrar, isSubmitting]);
 
   const handleStartEdit = (productName: string) => {
     const product = customProducts.find(p => p.name === productName);
@@ -540,12 +553,22 @@ export default function CadastrarItem({
 
           <Button
             type="submit"
-              className="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-semibold py-4 uppercase"
+            disabled={isSubmitting}
+            className="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-semibold py-4 uppercase disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <PlusCircle className="w-4 h-4 mr-2" />
-              {isCustomProduct && sizeType !== "unique" && selectedSizes.length > 1
-                ? `CADASTRAR ${selectedSizes.length} VARIAÇÕES`
-                : "CADASTRAR PRODUTO"}
+            {isSubmitting ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                CADASTRANDO...
+              </>
+            ) : (
+              <>
+                <PlusCircle className="w-4 h-4 mr-2" />
+                {isCustomProduct && sizeType !== "unique" && selectedSizes.length > 1
+                  ? `CADASTRAR ${selectedSizes.length} VARIAÇÕES`
+                  : "CADASTRAR PRODUTO"}
+              </>
+            )}
           </Button>
         </form>
       </CardContent>

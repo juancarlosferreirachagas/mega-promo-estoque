@@ -22,19 +22,11 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronUp,
-  Shirt,
-  ShoppingBag,
-  Footprints,
-  Watch,
-  Glasses,
-  Backpack,
-  Crown,
-  Star,
-  Gift,
-  Briefcase,
   Filter,
   Search,
+  X,
 } from "lucide-react";
+import { getProductIcon } from "../utils/productIcons";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import ExcelJS from "exceljs";
@@ -104,43 +96,6 @@ export default function Historico({
     }
   };
 
-  const getProductIcon = (productName: string) => {
-    if (!productName) return Package;
-    const nameLower = productName.toLowerCase();
-
-    if (nameLower.includes("camisa") || nameLower.includes("blusa") || nameLower.includes("polo") || nameLower.includes("camiseta")) {
-      return Shirt;
-    }
-    if (nameLower.includes("calça") || nameLower.includes("short") || nameLower.includes("bermuda")) {
-      return ShoppingBag;
-    }
-    if (nameLower.includes("tênis") || nameLower.includes("tenis") || nameLower.includes("sapato") || nameLower.includes("chinelo") || nameLower.includes("sandália") || nameLower.includes("sandalia") || nameLower.includes("bota")) {
-      return Footprints;
-    }
-    if (nameLower.includes("relógio") || nameLower.includes("relogio")) {
-      return Watch;
-    }
-    if (nameLower.includes("óculos") || nameLower.includes("oculos")) {
-      return Glasses;
-    }
-    if (nameLower.includes("mochila") || nameLower.includes("bolsa")) {
-      return Backpack;
-    }
-    if (nameLower.includes("boné") || nameLower.includes("bone") || nameLower.includes("chapéu") || nameLower.includes("chapeu")) {
-      return Crown;
-    }
-    if (nameLower.includes("jóia") || nameLower.includes("joia") || nameLower.includes("colar") || nameLower.includes("pulseira") || nameLower.includes("anel")) {
-      return Star;
-    }
-    if (nameLower.includes("presente") || nameLower.includes("brinde") || nameLower.includes("kit")) {
-      return Gift;
-    }
-    if (nameLower.includes("mala") || nameLower.includes("pasta") || nameLower.includes("case")) {
-      return Briefcase;
-    }
-
-    return Package;
-  };
 
   const getItemInfo = useCallback((itemId: string) => {
     if (!inventory || !itemId) {
@@ -150,26 +105,47 @@ export default function Historico({
     return item || { name: "Produto removido", size: "N/A" };
   }, [inventory]);
 
-  // Filtros - memoizado (definido ANTES de handleExportExcel)
+  // Debounce para busca - otimização de performance
+  const [debouncedSearchPerson, setDebouncedSearchPerson] = useState('');
+  const [debouncedSearchResponsible, setDebouncedSearchResponsible] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchPerson(searchPerson);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchPerson]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchResponsible(searchResponsible);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchResponsible]);
+
+  // Filtros - memoizado com debounce para melhor performance
   const filteredMovements = useMemo(() => {
     if (!movements || movements.length === 0) {
       return [];
     }
     
+    const personLower = debouncedSearchPerson.toLowerCase();
+    const responsibleLower = debouncedSearchResponsible.toLowerCase();
+    
     return movements.filter((movement) => {
       if (!movement) return false;
       
-      const matchesPerson = movement.personName
-        ? movement.personName.toLowerCase().includes(searchPerson.toLowerCase())
-        : true;
+      const matchesPerson = !personLower || (movement.personName
+        ? movement.personName.toLowerCase().includes(personLower)
+        : false);
 
-      const matchesResponsible = movement.responsible
-        ? movement.responsible.toLowerCase().includes(searchResponsible.toLowerCase())
-        : true;
+      const matchesResponsible = !responsibleLower || (movement.responsible
+        ? movement.responsible.toLowerCase().includes(responsibleLower)
+        : false);
 
       return matchesPerson && matchesResponsible;
     });
-  }, [movements, searchPerson, searchResponsible]);
+  }, [movements, debouncedSearchPerson, debouncedSearchResponsible]);
 
   // Carregar logs de auditoria
   useEffect(() => {
@@ -394,10 +370,10 @@ export default function Historico({
             </div>
           ) : (
             <>
-              {/* SEÇÃO DE FILTROS */}
+              {/* SEÇÃO DE FILTROS MELHORADA */}
               <div className="mb-6 bg-gradient-to-br from-white via-orange-50/30 to-amber-50/30 backdrop-blur-sm rounded-2xl border-2 border-orange-200/50 shadow-xl overflow-hidden">
                 <div className="bg-gradient-to-r from-orange-500 via-orange-600 to-amber-600 px-5 py-2.5 shadow-lg">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2.5">
                       <Filter className="w-4 h-4 text-white" />
                       <h3 className="font-bold text-white tracking-wide uppercase text-sm">
@@ -426,7 +402,7 @@ export default function Historico({
                           }}
                           className="bg-white/30 hover:bg-white/40 text-white border border-white/40 backdrop-blur-sm font-bold text-xs h-auto py-1.5 px-3 rounded-lg transition-all hover:shadow-lg"
                         >
-                          Limpar
+                          Limpar Filtros
                         </Button>
                       )}
                     </div>
@@ -449,14 +425,15 @@ export default function Historico({
                         placeholder="Buscar por empresa ou pessoa..."
                         value={searchPerson}
                         onChange={(e) => setSearchPerson(e.target.value)}
-                        className="pl-12 pr-4 h-10 bg-white border-2 border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 rounded-xl font-medium text-gray-900 placeholder:text-gray-400 shadow-sm hover:shadow-md transition-all"
+                        className="pl-12 pr-10 h-10 bg-white border-2 border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 rounded-xl font-medium text-gray-900 placeholder:text-gray-400 shadow-sm hover:shadow-md transition-all"
                       />
                       {searchPerson && (
                         <button
                           onClick={() => setSearchPerson("")}
-                          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                          title="Limpar busca"
                         >
-                          <span className="text-xl font-bold">×</span>
+                          <X className="w-4 h-4" />
                         </button>
                       )}
                     </div>
@@ -477,19 +454,31 @@ export default function Historico({
                         placeholder="Buscar por responsável..."
                         value={searchResponsible}
                         onChange={(e) => setSearchResponsible(e.target.value)}
-                        className="pl-12 pr-4 h-10 bg-white border-2 border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 rounded-xl font-medium text-gray-900 placeholder:text-gray-400 shadow-sm hover:shadow-md transition-all"
+                        className="pl-12 pr-10 h-10 bg-white border-2 border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 rounded-xl font-medium text-gray-900 placeholder:text-gray-400 shadow-sm hover:shadow-md transition-all"
                       />
                       {searchResponsible && (
                         <button
                           onClick={() => setSearchResponsible("")}
-                          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                          title="Limpar busca"
                         >
-                          <span className="text-xl font-bold">×</span>
+                          <X className="w-4 h-4" />
                         </button>
                       )}
                     </div>
                   </div>
                 </div>
+                {/* Indicador de filtro ativo */}
+                {(debouncedSearchPerson || debouncedSearchResponsible) && (
+                  <div className="px-4 pb-3">
+                    <div className="flex items-center gap-2 p-2 bg-orange-50 border border-orange-200 rounded-lg">
+                      <Filter className="w-3.5 h-3.5 text-orange-600" />
+                      <span className="text-xs font-semibold text-orange-800">
+                        Filtros ativos: {filteredMovements.length} resultado(s)
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* LISTA DE MOVIMENTAÇÕES */}

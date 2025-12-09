@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { InventoryItem } from '../AppWithSupabase';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { 
@@ -11,19 +11,8 @@ import {
   Trash2,
   Edit,
   X,
-  Shirt,
-  ShoppingBag,
-  Footprints,
-  Watch,
-  Glasses,
-  Backpack,
-  Crown,
-  Zap,
-  Heart,
-  Star,
-  Gift,
-  Briefcase,
 } from 'lucide-react';
+import { getProductIcon } from '../utils/productIcons';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -103,50 +92,6 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit, onEditName }
     return { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-300' };
   };
 
-  // Memoizar getProductIcon para evitar recálculos
-  const getProductIcon = useCallback((productName: string) => {
-    const nameLower = productName.toLowerCase();
-    
-    // Roupas
-    if (nameLower.includes('camisa') || nameLower.includes('blusa') || nameLower.includes('polo') || nameLower.includes('camiseta')) {
-      return Shirt;
-    }
-    if (nameLower.includes('calça') || nameLower.includes('short') || nameLower.includes('bermuda')) {
-      return ShoppingBag;
-    }
-    
-    // Calçados
-    if (nameLower.includes('tênis') || nameLower.includes('tenis') || nameLower.includes('sapato') || nameLower.includes('chinelo') || nameLower.includes('sandália') || nameLower.includes('sandalia') || nameLower.includes('bota')) {
-      return Footprints;
-    }
-    
-    // Acessórios
-    if (nameLower.includes('relógio') || nameLower.includes('relogio')) {
-      return Watch;
-    }
-    if (nameLower.includes('óculos') || nameLower.includes('oculos')) {
-      return Glasses;
-    }
-    if (nameLower.includes('mochila') || nameLower.includes('bolsa')) {
-      return Backpack;
-    }
-    if (nameLower.includes('boné') || nameLower.includes('bone') || nameLower.includes('chapéu') || nameLower.includes('chapeu')) {
-      return Crown;
-    }
-    if (nameLower.includes('jóia') || nameLower.includes('joia') || nameLower.includes('colar') || nameLower.includes('pulseira') || nameLower.includes('anel')) {
-      return Star;
-    }
-    if (nameLower.includes('presente') || nameLower.includes('brinde') || nameLower.includes('kit')) {
-      return Gift;
-    }
-    if (nameLower.includes('mala') || nameLower.includes('pasta') || nameLower.includes('case')) {
-      return Briefcase;
-    }
-    
-    // Padrão
-    return Package;
-  }, []);
-  
   // Cache de ícones por produto para evitar recálculos
   const productIconCache = useMemo(() => {
     const cache = new Map<string, any>();
@@ -156,7 +101,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit, onEditName }
       }
     });
     return cache;
-  }, [inventory, getProductIcon]);
+  }, [inventory]);
 
   const handleExportExcel = useCallback(async () => {
     if (inventory.length === 0) {
@@ -473,13 +418,15 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit, onEditName }
             {/* Header Compacto */}
             <div className="bg-gradient-to-r from-orange-500 to-amber-600 px-4 py-2">
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4 text-white" />
-                  <h3 className="font-bold text-white text-sm">FILTROS</h3>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
+                    <Filter className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="font-black text-white text-base uppercase tracking-wide">FILTROS</h3>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="px-2.5 py-1 bg-white/20 rounded-lg backdrop-blur-sm">
-                    <span className="text-xs text-white font-semibold">
+                <div className="flex items-center gap-3">
+                  <div className="px-4 py-2 bg-white/30 backdrop-blur-sm rounded-xl border-2 border-white/40 shadow-md">
+                    <span className="text-sm text-white font-black">
                       {sortedInventory.length}/{inventory.length}
                     </span>
                   </div>
@@ -492,7 +439,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit, onEditName }
                         setSizeFilter('all');
                         setSortBy('name-asc');
                       }}
-                      className="bg-white/20 hover:bg-white/30 text-white border border-white/30 h-auto py-1 px-2.5 text-xs font-semibold rounded-lg transition-all"
+                      className="bg-white/20 hover:bg-white/40 text-white border-2 border-white/40 h-auto py-2 px-4 text-xs font-bold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
                     >
                       LIMPAR
                     </Button>
@@ -505,20 +452,20 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit, onEditName }
             <div className="p-3 sm:p-4 space-y-3">
               {/* Busca */}
               <div>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <div className="relative group">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-orange-500 transition-colors" />
                   <Input
                     id="search"
                     type="text"
                     placeholder="BUSCAR PRODUTO OU TAMANHO..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9 pr-8 h-9 bg-gray-50 border border-gray-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-200 rounded-lg text-sm"
+                    className="pl-9 pr-8 h-10 bg-white/80 backdrop-blur-sm border-2 border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200/50 rounded-xl text-sm shadow-sm hover:shadow-md transition-all duration-200"
                   />
                   {searchTerm && (
                     <button
                       onClick={() => setSearchTerm('')}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-lg text-gray-400 hover:text-orange-600 hover:bg-orange-50 transition-all duration-200"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -540,7 +487,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit, onEditName }
                       setSizeFilter('all');
                     }}
                   >
-                    <SelectTrigger id="product-filter" className="h-9 bg-gray-50 border border-gray-200 hover:border-orange-300 focus:border-orange-500 rounded-lg text-sm">
+                    <SelectTrigger id="product-filter" className="h-10 bg-white/80 backdrop-blur-sm border-2 border-gray-200 hover:border-orange-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-200/50 rounded-xl text-sm shadow-sm hover:shadow-md transition-all duration-200">
                       <SelectValue placeholder="TODOS" />
                     </SelectTrigger>
                     <SelectContent className="max-h-[250px] select-scrollbar">
@@ -560,7 +507,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit, onEditName }
                     TAMANHO
                   </Label>
                   <Select value={sizeFilter} onValueChange={setSizeFilter}>
-                    <SelectTrigger id="size-filter" className="h-9 bg-gray-50 border border-gray-200 hover:border-orange-300 focus:border-orange-500 rounded-lg text-sm">
+                    <SelectTrigger id="size-filter" className="h-10 bg-white/80 backdrop-blur-sm border-2 border-gray-200 hover:border-orange-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-200/50 rounded-xl text-sm shadow-sm hover:shadow-md transition-all duration-200">
                       <SelectValue placeholder="TODOS" />
                     </SelectTrigger>
                     <SelectContent className="max-h-[250px] select-scrollbar">
@@ -580,7 +527,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit, onEditName }
                     SITUAÇÃO
                   </Label>
                   <Select value={statusFilter} onValueChange={(value: 'all' | 'low' | 'ok') => setStatusFilter(value)}>
-                    <SelectTrigger id="status-filter" className="h-9 bg-gray-50 border border-gray-200 hover:border-orange-300 focus:border-orange-500 rounded-lg text-sm">
+                    <SelectTrigger id="status-filter" className="h-10 bg-white/80 backdrop-blur-sm border-2 border-gray-200 hover:border-orange-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-200/50 rounded-xl text-sm shadow-sm hover:shadow-md transition-all duration-200">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="max-h-[250px] select-scrollbar">
@@ -607,7 +554,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit, onEditName }
                     ORDENAR
                   </Label>
                   <Select value={sortBy} onValueChange={(value: typeof sortBy) => setSortBy(value)}>
-                    <SelectTrigger id="sort-by" className="h-9 bg-gray-50 border border-gray-200 hover:border-orange-300 focus:border-orange-500 rounded-lg text-sm">
+                    <SelectTrigger id="sort-by" className="h-10 bg-white/80 backdrop-blur-sm border-2 border-gray-200 hover:border-orange-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-200/50 rounded-xl text-sm shadow-sm hover:shadow-md transition-all duration-200">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="max-h-[250px] select-scrollbar">
@@ -621,30 +568,30 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit, onEditName }
               </div>
 
               {/* Estatísticas Compactas */}
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100">
-                <div className={`p-2.5 rounded-lg ${
+              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-200">
+                <div className={`p-3 rounded-xl shadow-sm transition-all duration-200 hover:shadow-md ${
                   inventory.filter(i => i.quantity < 10).length > 0
-                    ? 'bg-red-50 border border-red-200'
-                    : 'bg-gray-50 border border-gray-200'
+                    ? 'bg-gradient-to-br from-red-50 to-red-100/50 border-2 border-red-200 hover:border-red-300'
+                    : 'bg-gradient-to-br from-gray-50 to-gray-100/50 border-2 border-gray-200'
                 }`}>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <AlertCircle className={`w-3.5 h-3.5 ${
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <AlertCircle className={`w-4 h-4 ${
                       inventory.filter(i => i.quantity < 10).length > 0 ? 'text-red-600' : 'text-gray-400'
                     }`} />
-                    <span className="text-xs font-semibold text-gray-700">BAIXO</span>
+                    <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">BAIXO</span>
                   </div>
-                  <p className={`text-lg font-black ${
+                  <p className={`text-2xl font-black ${
                     inventory.filter(i => i.quantity < 10).length > 0 ? 'text-red-700' : 'text-gray-500'
                   }`}>
                     {inventory.filter(i => i.quantity < 10).length}
                   </p>
                 </div>
-                <div className="p-2.5 rounded-lg bg-green-50 border border-green-200">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-                    <span className="text-xs font-semibold text-gray-700">NORMAL</span>
+                <div className="p-3 rounded-xl bg-gradient-to-br from-green-50 to-emerald-100/50 border-2 border-green-200 hover:border-green-300 shadow-sm hover:shadow-md transition-all duration-200">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">NORMAL</span>
                   </div>
-                  <p className="text-lg font-black text-green-700">
+                  <p className="text-2xl font-black text-green-700">
                     {inventory.filter(i => i.quantity >= 10).length}
                   </p>
                 </div>
@@ -652,9 +599,11 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit, onEditName }
 
               {/* Indicador de Filtro Ativo */}
               {sortedInventory.length !== inventory.length && (
-                <div className="flex items-center gap-2 p-2 bg-orange-50 border border-orange-200 rounded-lg">
-                  <Filter className="w-3.5 h-3.5 text-orange-600" />
-                  <span className="text-xs font-semibold text-orange-800">
+                <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-200 rounded-xl shadow-sm">
+                  <div className="p-1.5 bg-orange-500 rounded-lg">
+                    <Filter className="w-3.5 h-3.5 text-white" />
+                  </div>
+                  <span className="text-xs font-bold text-orange-800 uppercase tracking-wide">
                     {sortedInventory.length} DE {inventory.length} PRODUTOS
                   </span>
                 </div>
@@ -685,18 +634,18 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit, onEditName }
                 return (
                   <div
                     key={item.id}
-                    className={`group relative aspect-square rounded-xl overflow-hidden bg-white border-2 shadow-md hover:shadow-xl ${
+                    className={`group relative aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-white to-gray-50 border-2 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] ${
                       isLowStock 
-                        ? 'border-red-400 hover:border-red-500' 
-                        : 'border-green-400 hover:border-green-500'
+                        ? 'border-red-300 hover:border-red-500' 
+                        : 'border-green-300 hover:border-green-500'
                     }`}
                   >
                     {/* Header - Verde para OK, Vermelho para Baixo */}
-                    <div className={`relative px-3 py-2 ${
+                    <div className={`relative px-3 py-2.5 ${
                       isLowStock 
-                        ? 'bg-gradient-to-r from-red-500 to-red-600' 
-                        : 'bg-gradient-to-r from-green-500 to-green-600'
-                    }`}>
+                        ? 'bg-gradient-to-r from-red-500 via-red-600 to-red-700' 
+                        : 'bg-gradient-to-r from-green-500 via-green-600 to-emerald-600'
+                    } shadow-lg`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div className="p-1.5 bg-white/20 rounded-md backdrop-blur-sm">
@@ -713,7 +662,7 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit, onEditName }
                               e.stopPropagation();
                               handleDeleteClick(item);
                             }}
-                            className="p-1.5 rounded-md bg-white/20 hover:bg-white/30 text-white transition-colors shadow-sm hover:shadow-md"
+                            className="p-1.5 rounded-lg bg-white/20 hover:bg-white/40 backdrop-blur-sm text-white transition-all duration-200 shadow-md hover:shadow-lg hover:scale-110 active:scale-95"
                             title="EXCLUIR PRODUTO"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -723,24 +672,17 @@ export default function EstoqueAtual({ inventory, onDelete, onEdit, onEditName }
                     </div>
 
                     {/* Corpo do Card */}
-                    <div className="p-3 h-full flex flex-col justify-between">
+                    <div className="p-4 h-full flex flex-col justify-between bg-gradient-to-b from-white to-gray-50/50">
                       {/* Nome do Produto - Editável */}
                       <div className="flex-1 mb-3">
                         {onEditName ? (
                           <InlineEditableText
                             value={item.name}
                             onSave={async (newName) => {
-                              console.log('📝 EstoqueAtual - onSave chamado:', { itemId: item.id, newName });
-                              if (!onEditName) {
-                                console.error('❌ EstoqueAtual - onEditName não disponível!');
-                                return false;
-                              }
+                              if (!onEditName) return false;
                               try {
-                                const result = await onEditName(item.id, newName);
-                                console.log('✅ EstoqueAtual - Resultado:', result);
-                                return result;
+                                return await onEditName(item.id, newName);
                               } catch (error) {
-                                console.error('❌ EstoqueAtual - Erro:', error);
                                 throw error;
                               }
                             }}

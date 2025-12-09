@@ -1,0 +1,1 @@
+[33m0f3352d[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain-clean[m[33m)[m feat: otimizações de performance e correção de erro ao salvar quantidade - Debounce em buscas (300ms) - Memoização de cálculos pesados - Optimistic updates para melhor UX - Paralelização de chamadas API - Cache de ícones de produtos - Validação melhorada de quantidade no servidor

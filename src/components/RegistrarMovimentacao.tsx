@@ -79,6 +79,7 @@ export default function RegistrarMovimentacao({
   const [customMotivosSaida, setCustomMotivosSaida] = useState<
     string[]
   >([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isCustomSize = size === "__CUSTOM_SIZE__";
   const isCustomReason = reason === "Outros";
@@ -245,8 +246,10 @@ export default function RegistrarMovimentacao({
     setCustomSize("");
   };
 
-  const handleSubmit = useCallback((e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isSubmitting) return;
 
     const finalSize = isCustomSize ? customSize.trim() : size;
     const finalReason = isCustomReason
@@ -267,27 +270,30 @@ export default function RegistrarMovimentacao({
       return;
     }
 
-    // Se for um motivo customizado novo (digitado no campo "Outros"), adiciona à lista
-    if (isCustomReason && customReason.trim()) {
-      addCustomMotivo(customReason.trim(), type);
-    }
+    setIsSubmitting(true);
 
-    onRegistrar(
-      name.trim(),
-      finalSize,
-      type,
-      quantity,
-      finalReason,
-      personName.trim(),
-      responsible.trim(),
-      observations.trim(),
-    );
+    try {
+      // Se for um motivo customizado novo (digitado no campo "Outros"), adiciona à lista
+      if (isCustomReason && customReason.trim()) {
+        addCustomMotivo(customReason.trim(), type);
+      }
 
-    // Limpa o formulário
-    setName("");
-    setSize("");
-    setCustomSize("");
-    setType("entrada");
+      await onRegistrar(
+        name.trim(),
+        finalSize,
+        type,
+        quantity,
+        finalReason,
+        personName.trim(),
+        responsible.trim(),
+        observations.trim(),
+      );
+
+      // Limpa o formulário
+      setName("");
+      setSize("");
+      setCustomSize("");
+      setType("entrada");
     setQuantity(1);
     setReason("");
     setCustomReason("");
@@ -802,11 +808,20 @@ export default function RegistrarMovimentacao({
           {/* Botão Submit - Moderno */}
           <Button
             type="submit"
-            className="w-full h-12 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:via-amber-600 hover:to-orange-700 text-white font-black rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] border-2 border-white/20"
-            disabled={!name || !size}
+            disabled={isSubmitting || !name || !size}
+            className="w-full h-12 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:via-amber-600 hover:to-orange-700 text-white font-black rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] border-2 border-white/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
-            <ArrowLeftRight className="w-5 h-5 mr-2" />
-            Registrar Movimentação
+            {isSubmitting ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                REGISTRANDO...
+              </>
+            ) : (
+              <>
+                <ArrowLeftRight className="w-5 h-5 mr-2" />
+                Registrar Movimentação
+              </>
+            )}
           </Button>
         </form>
       </CardContent>

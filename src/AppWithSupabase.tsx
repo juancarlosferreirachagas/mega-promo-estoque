@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Package, History, PlusCircle, ArrowLeftRight, Users, LogOut, Shield, Database, Loader2 } from 'lucide-react';
+import { Package, History, PlusCircle, ArrowLeftRight, Users, LogOut, Shield, Database } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { Button } from './components/ui/button';
 import EstoqueAtual from './components/EstoqueAtual';
@@ -532,11 +532,8 @@ export default function AppWithSupabase() {
 
   const handleEditItemName = useCallback(async (itemId: string, newName: string) => {
     try {
-      console.log('🔄 [App] handleEditItemName chamado:', { itemId, newName });
-      
       // Buscar item atual para validação
       const currentItem = inventory.find(i => i.id === itemId);
-      console.log('🔍 [App] Item atual encontrado:', currentItem);
       
       if (!currentItem) {
         throw new Error('Item não encontrado no estoque');
@@ -544,46 +541,22 @@ export default function AppWithSupabase() {
 
       // Validar se o nome mudou
       if (currentItem.name.trim() === newName.trim()) {
-        console.log('ℹ️ [App] Nome não mudou, retornando sucesso');
         return true; // Nome não mudou, considerar sucesso
       }
 
-      console.log('📝 [App] Nome antigo:', currentItem.name, '| Novo nome:', newName);
-
       // Atualizar no banco
       const updatedItem = await api.updateInventoryItem(itemId, { name: newName });
-
-      console.log('📦 [App] Item atualizado da API:', updatedItem);
 
       if (!updatedItem) {
         throw new Error('Não foi possível atualizar o nome do item');
       }
 
-      // Verificar se o nome foi realmente atualizado
-      // Se não foi, pode ser cache do Supabase - vamos confiar no update e continuar
-      if (updatedItem.name !== newName.trim()) {
-        console.warn('⚠️ [App] Nome retornado não corresponde ao esperado (pode ser cache do Supabase)');
-        console.warn('⚠️ [App] Esperado:', newName.trim(), '| Recebido:', updatedItem.name);
-        console.log('✅ [App] Continuando - o update foi feito, será refletido no próximo refresh');
-        // Não jogar erro - o update foi feito, só não está refletindo ainda
-      }
-
-      console.log('✅ [App] Nome atualizado com sucesso no banco');
-
       // IMPORTANTE: Atualizar estado local IMEDIATAMENTE para UX otimista
-      setInventory(prev => {
-        const updated = prev.map(item => 
-          item.id === itemId 
-            ? { ...item, name: newName.trim() }
-            : item
-        );
-        console.log('✅ [App] Estado local atualizado otimisticamente:', {
-          itemId,
-          oldName: currentItem.name,
-          newName: newName.trim()
-        });
-        return updated;
-      });
+      setInventory(prev => prev.map(item => 
+        item.id === itemId 
+          ? { ...item, name: newName.trim() }
+          : item
+      ));
 
       // Atualizar movimentações locais também
       setMovements(prev => prev.map(mov => 
@@ -611,22 +584,14 @@ export default function AppWithSupabase() {
         return updated;
       });
       
-      // Fazer refresh IMEDIATO e depois novamente após 2 segundos para garantir
+      // Fazer refresh único após 1 segundo para garantir persistência
       setTimeout(async () => {
-        console.log('🔄 [App] Primeiro refresh (1s)...');
         await refreshAll();
       }, 1000);
       
-      setTimeout(async () => {
-        console.log('🔄 [App] Segundo refresh (3s) para garantir persistência...');
-        await refreshAll();
-        console.log('✅ [App] Refresh completo');
-      }, 3000);
-      
-      console.log('✅ [App] handleEditItemName concluído com sucesso');
       return true;
     } catch (error: any) {
-      console.error('❌ [App] Erro ao atualizar nome do item:', error);
+      console.error('Erro ao atualizar nome do item:', error);
       // O erro será tratado pelo componente InlineEditableText
       throw error;
     }
@@ -725,21 +690,25 @@ export default function AppWithSupabase() {
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-amber-50">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
-        <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
-          <div className="flex items-center gap-4">
-            <div className="bg-white rounded-full p-3 shadow-lg">
-              <img 
-                src={logoMegaPromo} 
-                alt="Mega Promo" 
-                className="w-16 h-16 rounded-full"
-              />
+        <div className="bg-gradient-to-r from-white via-orange-50/30 to-amber-50/30 backdrop-blur-sm shadow-xl rounded-2xl p-4 sm:p-6 mb-6 border-2 border-orange-200/50">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-orange-400 to-amber-500 rounded-full blur-lg opacity-30"></div>
+                <div className="relative bg-white rounded-full p-3 shadow-lg">
+                  <img 
+                    src={logoMegaPromo} 
+                    alt="Mega Promo" 
+                    className="w-16 h-16 rounded-full"
+                  />
+                </div>
+              </div>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">Mega Promo</h1>
+                <p className="text-orange-600 font-bold text-sm sm:text-base uppercase tracking-wider">MERCHANDISING</p>
+                <p className="text-gray-600 text-xs sm:text-sm font-medium">Sistema de Controle de Estoque</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-gray-900">Mega Promo</h1>
-              <p className="text-orange-600 font-semibold">MERCHANDISING</p>
-              <p className="text-gray-500 text-sm">Sistema de Controle de Estoque</p>
-            </div>
-          </div>
 
           {/* User Info & Logout */}
           <div className="flex items-center gap-4">
@@ -758,7 +727,7 @@ export default function AppWithSupabase() {
                   onClick={handleLogout}
                   variant="outline"
                   size="sm"
-                  className="mt-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  className="mt-2 text-red-600 hover:text-white hover:bg-gradient-to-r hover:from-red-500 hover:to-red-600 border-2 border-red-200 hover:border-red-500 shadow-sm hover:shadow-md transition-all duration-200 font-semibold"
                 >
                   <LogOut className="w-4 h-4 mr-2" />
                   Sair
@@ -772,7 +741,7 @@ export default function AppWithSupabase() {
                   onClick={handleLogout}
                   variant="outline"
                   size="sm"
-                  className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                  className="text-orange-600 hover:text-white hover:bg-gradient-to-r hover:from-orange-500 hover:to-amber-500 border-2 border-orange-200 hover:border-orange-500 shadow-sm hover:shadow-md transition-all duration-200 font-semibold"
                 >
                   <LogOut className="w-4 h-4 mr-2" />
                   Fazer Login
@@ -791,10 +760,10 @@ export default function AppWithSupabase() {
           onValueChange={setActiveTab}
           className="w-full"
         >
-          <TabsList className={`grid w-full ${currentUser ? 'grid-cols-2 md:grid-cols-5' : 'grid-cols-2'} bg-white shadow-md mb-8`}>
+          <TabsList className={`grid w-full ${currentUser ? 'grid-cols-2 md:grid-cols-5' : 'grid-cols-2'} bg-white/90 backdrop-blur-sm shadow-lg mb-8 rounded-xl border-2 border-orange-100/50 p-1`}>
             <TabsTrigger 
               value="estoque" 
-              className="data-[state=active]:bg-orange-500 data-[state=active]:text-white"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-amber-500 data-[state=active]:text-white data-[state=active]:shadow-md rounded-lg transition-all duration-200 font-semibold"
             >
               <Package className="w-4 h-4 mr-2" />
               Estoque
@@ -802,7 +771,7 @@ export default function AppWithSupabase() {
             
             <TabsTrigger 
               value="historico" 
-              className="data-[state=active]:bg-orange-500 data-[state=active]:text-white"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-amber-500 data-[state=active]:text-white data-[state=active]:shadow-md rounded-lg transition-all duration-200 font-semibold"
             >
               <History className="w-4 h-4 mr-2" />
               Histórico
@@ -811,7 +780,7 @@ export default function AppWithSupabase() {
             {hasPermission('cadastrar_itens') && (
               <TabsTrigger 
                 value="cadastrar" 
-                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-amber-500 data-[state=active]:text-white data-[state=active]:shadow-md rounded-lg transition-all duration-200 font-semibold"
               >
                 <PlusCircle className="w-4 h-4 mr-2" />
                 Cadastrar Item
@@ -821,7 +790,7 @@ export default function AppWithSupabase() {
             {hasPermission('registrar_movimentacoes') && (
               <TabsTrigger 
                 value="movimentacao" 
-                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-amber-500 data-[state=active]:text-white data-[state=active]:shadow-md rounded-lg transition-all duration-200 font-semibold"
               >
                 <ArrowLeftRight className="w-4 h-4 mr-2" />
                 Movimento
@@ -831,7 +800,7 @@ export default function AppWithSupabase() {
             {hasPermission('gerenciar_usuarios') && (
               <TabsTrigger 
                 value="usuarios" 
-                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-amber-500 data-[state=active]:text-white data-[state=active]:shadow-md rounded-lg transition-all duration-200 font-semibold"
               >
                 <Users className="w-4 h-4 mr-2" />
                 Usuários
