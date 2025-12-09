@@ -897,6 +897,7 @@ export default function AppWithSupabase() {
           onClose={closeEditModal}
         />
       )}
+      </div>
     </div>
   );
 }

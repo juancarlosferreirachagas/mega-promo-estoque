@@ -294,13 +294,18 @@ export default function RegistrarMovimentacao({
       setSize("");
       setCustomSize("");
       setType("entrada");
-    setQuantity(1);
-    setReason("");
-    setCustomReason("");
-    setPersonName("");
-    setResponsible(currentUser.username);
-    setObservations("");
-  }, [name, size, customSize, reason, customReason, personName, responsible, observations, quantity, type, isCustomReason, isCustomSize, addCustomMotivo, onRegistrar, currentUser]);
+      setQuantity(1);
+      setReason("");
+      setCustomReason("");
+      setPersonName("");
+      setResponsible(currentUser.username);
+      setObservations("");
+    } catch (error) {
+      console.error("Erro ao registrar movimentação:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [name, size, customSize, reason, customReason, personName, responsible, observations, quantity, type, isCustomReason, isCustomSize, addCustomMotivo, onRegistrar, currentUser, isSubmitting]);
 
   return (
     <Card className="border-gray-200 shadow">
