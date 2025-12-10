@@ -226,6 +226,76 @@ app.put('/make-server-9694c52b/users/:id', async (c) => {
   }
 });
 
+// Endpoint para corrigir usuários master (apenas Giovana)
+app.post('/make-server-9694c52b/users/fix-master', async (c) => {
+  try {
+    console.log('🔧 Corrigindo usuários master...');
+    
+    // 1. Remover status master de todos
+    const { error: removeError } = await supabase
+      .from('mega_promo_users')
+      .update({ is_master: false })
+      .eq('is_master', true); // Atualizar apenas os que são master
+    
+    if (removeError) {
+      console.error('❌ Erro ao remover status master:', removeError);
+      throw removeError;
+    }
+    
+    // 2. Definir apenas Giovana como master (case-insensitive)
+    const { data: giovanaUsers, error: findError } = await supabase
+      .from('mega_promo_users')
+      .select('id, username')
+      .ilike('username', 'giovana');
+    
+    if (findError) {
+      console.error('❌ Erro ao buscar Giovana:', findError);
+      throw findError;
+    }
+    
+    if (giovanaUsers && giovanaUsers.length > 0) {
+      // Encontrar a Giovana exata (case-insensitive mas preferir exato)
+      const giovana = giovanaUsers.find(u => u.username.toLowerCase().trim() === 'giovana') || giovanaUsers[0];
+      
+      const { error: updateError } = await supabase
+        .from('mega_promo_users')
+        .update({ is_master: true })
+        .eq('id', giovana.id);
+      
+      if (updateError) {
+        console.error('❌ Erro ao definir Giovana como master:', updateError);
+        throw updateError;
+      }
+      
+      console.log(`✅ Giovana (${giovana.username}) definida como master`);
+    } else {
+      console.warn('⚠️ Usuário Giovana não encontrado');
+    }
+    
+    // 3. Verificar resultado
+    const { data: allUsers, error: listError } = await supabase
+      .from('mega_promo_users')
+      .select('id, username, is_master')
+      .eq('is_master', true);
+    
+    if (listError) {
+      console.error('❌ Erro ao listar usuários master:', listError);
+    }
+    
+    return c.json({ 
+      success: true, 
+      message: 'Usuários master corrigidos com sucesso',
+      masters: allUsers || []
+    });
+  } catch (error) {
+    console.error('❌ Erro ao corrigir usuários master:', error);
+    return c.json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Erro ao corrigir usuários master' 
+    }, 500);
+  }
+});
+
 // Deletar usuário
 app.delete('/make-server-9694c52b/users/:id', async (c) => {
   try {

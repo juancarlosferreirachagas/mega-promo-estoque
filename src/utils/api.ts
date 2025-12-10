@@ -112,6 +112,22 @@ export const updateUser = async (id: string, password?: string, permissions?: an
   }
 };
 
+// Função para corrigir usuários master (apenas Giovana)
+export const fixMasterUsers = async (): Promise<{ success: boolean; message?: string; error?: string; masters?: any[] }> => {
+  try {
+    const response = await fetch(`${API_URL}/users/fix-master`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Erro ao corrigir usuários master:', error);
+    return { success: false, error: 'Erro ao corrigir usuários master' };
+  }
+};
+
 export const deleteUser = async (id: string): Promise<boolean> => {
   try {
     const response = await fetch(`${API_URL}/users/${id}`, {
