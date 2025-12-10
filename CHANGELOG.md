@@ -7,6 +7,34 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [1.0.7] - 2025-01-27
+
+### 🐛 Corrigido
+- **Erros TypeScript corrigidos**:
+  - Parâmetro `open` em `onOpenChange` do AlertDialog agora tem tipo explícito `boolean`
+  - Parâmetro `value` em `onValueChange` do Select agora tem tipo explícito `string`
+- **Warnings de código não utilizado removidos**:
+  - Removidos imports não utilizados: `Zap` e `Heart` de lucide-react
+  - Removido parâmetro não utilizado `size` da função `getSizeColor`
+  - Removida função não utilizada `handleEditClick`
+
+### 🧹 Limpeza de Código
+- **Reversão de código complexo**: Removida implementação complexa de validação automática de usuários master
+- **Código simplificado**: Backend e frontend voltaram ao estado original sem validações automáticas pesadas
+- **Solução direta**: Criado script SQL simples (`fix_master_users.sql`) para correção manual de usuários master
+
+### 📝 Documentação
+- **Script SQL de correção**: Criado `fix_master_users.sql` para garantir que apenas Giovana seja master
+- **Instruções claras**: Documentado processo simples de correção via SQL direto no Supabase
+- **Abordagem pragmática**: Escolhida solução simples e direta em vez de validações automáticas complexas
+
+### 🎯 Mudanças de Design
+- **Filosofia simplificada**: Decisão consciente de evitar código complexo que pode quebrar
+- **Manutenibilidade**: Código mais fácil de manter e entender
+- **Risco reduzido**: Menos código = menos pontos de falha
+
+---
+
 ## [1.0.6] - 2025-01-26
 
 ### ✨ Adicionado

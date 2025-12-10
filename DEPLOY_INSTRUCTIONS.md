@@ -45,22 +45,27 @@ Se preferir fazer deploy manual:
   - [x] Cadastrar Item
   - [x] Registrar Movimentação
   - [x] Gerenciar Usuários
-- [x] Versão tagada no Git (`v1.0.3`)
+- [x] Versão tagada no Git (`v1.0.7`)
 - [x] Changelog atualizado
 - [x] Documentação atualizada
 
 ## 📊 Versões
 
-### Versão Atual: v1.0.3
+### Versão Atual: v1.0.7
 
 **Mudanças principais:**
-- ✅ Correção crítica da aba Histórico
-- ✅ Imports corrigidos
-- ✅ Performance otimizada
-- ✅ Código limpo e organizado
+- ✅ Correções de erros TypeScript (tipos implícitos)
+- ✅ Limpeza de código não utilizado (warnings removidos)
+- ✅ Reversão de código complexo - simplificação estratégica
+- ✅ Script SQL para correção de usuários master
+- ✅ Documentação atualizada
 
 ### Versões Anteriores
 
+- **v1.0.6**: Edição inline de nome de produto
+- **v1.0.5**: Melhorias e correções gerais
+- **v1.0.4**: Correção de validação de tamanho e redesign de cards
+- **v1.0.3**: Correção crítica da aba Histórico
 - **v1.0.2**: Otimizações de performance
 - **v1.0.1**: Filtros dinâmicos e edição de itens
 - **v1.0.0**: Versão inicial
@@ -120,12 +125,13 @@ Se algo der errado após o deploy:
 
 ## ✅ Status Atual
 
-**Versão**: v1.0.3  
+**Versão**: v1.0.7  
 **Status**: ✅ Pronto para Deploy  
-**Risco**: 🟢 Baixo (todas as verificações passaram)  
-**Testado**: ✅ Sim, localmente
+**Risco**: 🟢 Muito Baixo (patch release - apenas correções e limpeza)  
+**Testado**: ✅ Sim, localmente  
+**Tipo**: Patch (Correções e Limpeza)
 
 ---
 
-**Última atualização**: 2025-11-24
+**Última atualização**: 2025-01-27
 
